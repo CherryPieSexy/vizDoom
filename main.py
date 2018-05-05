@@ -1,24 +1,56 @@
 import torch
 from doom_environment import DoomEnvironment
 from experience_replay import ReplayMemory
-from dqn import DQN
-from trainer import Trainer
-# from hyperparameters import hp
+from models.dqn import DQN
+from trainer import Trainer, watch_agent
+from hyperparameters import hp_basic as hp
+from time import sleep
 
-cfg = 'scenarios/basic.cfg'
-train_env = DoomEnvironment(cfg, False, 12)
-test_env = DoomEnvironment(cfg, False, 12)
 
-train_env._game.get_screen
+if __name__ == '__main__':
+    print('------------------------------ vizDoom main script -----------------------------')
+    print('scenario: {}'.format(hp.config_file))
+    train_env = DoomEnvironment(hp.config_file, False, hp.train_skiprate)
+    test_env = DoomEnvironment(hp.config_file, False, hp.test_skiprate)
 
-# er = ReplayMemory(10**5, (3, 60, 108))
-# agent = DQN(8)
-# target = DQN(8)
-# target.load_state_dict(agent.state_dict())
+    policy_net = DQN(2 ** train_env.get_n_buttons())
+    target_net = DQN(2 ** train_env.get_n_buttons())
+    optimizer = torch.optim.RMSprop(policy_net.parameters(), hp.learning_rate)
 
-# optim = torch.optim.RMSprop(agent.parameters(), 0.0025)
+    if hp.load_model is not None:
+        print('loaded model: {}'.format(hp.load_model))
+        loaded_state = torch.load(hp.log_folder + 'checkpoints/' + hp.load_model)
+        policy_net.load_state_dict(loaded_state['policy_net_state'])
+        target_net.load_state_dict(loaded_state['policy_net_state'])
+        optimizer.load_state_dict(loaded_state['optimizer'])
+        policy_net.epsilon = loaded_state['epsilon']
 
-# trainer = Trainer(train_env, test_env, er, agent, target, optim, 'logs/Basic/DQN/')
-# trainer.train(n_epoch=20, steps_per_epoch=2000,
-#               play_steps=1, batch_size=64, time_size=1,
-#               tests_per_epoch=100)
+    if hp.train:
+        print('----------------------------------- Training -----------------------------------')
+        print('training parameters:')
+        print('n_epoch: {}, steps_per_epoch: {}, play_steps: {}'.format(hp.n_epoch, hp.steps_per_epoch, hp.play_steps))
+        print('batch_size: {}, time_size: {}, tests_per_epoch: {}'.format(hp.batch_size, hp.time_size,
+                                                                          hp.tests_per_epoch))
+        er = ReplayMemory(hp.replay_size, hp.screen_size)
+        trainer = Trainer(cuda=hp.cuda,
+                          environment=train_env, test_environment=test_env,
+                          experience_replay=er,
+                          policy_net=policy_net, target_net=target_net, optimizer=optimizer,
+                          log_folder=hp.log_folder)
+        trainer.train(n_epoch=hp.n_epoch, steps_per_epoch=hp.steps_per_epoch,
+                      play_steps=hp.play_steps, batch_size=hp.batch_size, time_size=hp.time_size,
+                      tests_per_epoch=hp.tests_per_epoch,
+                      start_epsilon=hp.start_epsilon, end_epsilon=hp.end_epsilon)
+        print('-------------------------------- Training done ---------------------------------')
+
+    if hp.watch_n_episodes != 0:
+        print('------------------------------- watch the model --------------------------------')
+        test_env.make_visible()
+        policy_net.epsilon = hp.end_epsilon
+        for _ in range(hp.watch_n_episodes):
+            test_env.reset()
+            reward = watch_agent(policy_net, test_env)
+            print('Episode {} done, reward: {}'.format(_, reward))
+            sleep(1.0)
+
+    print('------------------------------------ Done! -------------------------------------')

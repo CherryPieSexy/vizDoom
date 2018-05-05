@@ -7,21 +7,36 @@ from tqdm import trange
 
 screen_transform = transforms.Compose([
     transforms.ToPILImage(),
-    transforms.Resize((60, 108)),
+    transforms.Grayscale(),
+    transforms.Resize((30, 45)),
     transforms.ToTensor(),
 ])
 
 
+def watch_agent(agent, env):
+    while True:
+        screen, features = env.observe()
+        action = agent.sample_actions(screen_transform(screen))[0]
+        done = env.advance_action_step(action)
+        if done:
+            reward = env.get_episode_reward()
+            return reward
+
+
 class Trainer:
-    def __init__(self, environment, test_environment, experience_replay,
+    def __init__(self, cuda,
+                 environment, test_environment, experience_replay,
                  policy_net, target_net, optimizer,
                  log_folder, gamma=0.99):
+        # noinspection PyUnresolvedReferences
+        self.device = torch.device("cuda" if cuda else "cpu")
+
         self._environment = environment
         self._test_environment = test_environment
         self._experience_replay = experience_replay
 
-        self._policy_net = policy_net
-        self._target_net = target_net
+        self._policy_net = policy_net.to(self.device)
+        self._target_net = target_net.to(self.device)
         self._optimizer = optimizer
 
         self._log_folder = log_folder
@@ -30,21 +45,20 @@ class Trainer:
 
     def train(self, n_epoch,
               steps_per_epoch, play_steps, batch_size, time_size,
-              tests_per_epoch=3, start_epsilon=1.0, end_epsilon=0.1):
+              tests_per_epoch, start_epsilon, end_epsilon):
         """General training function"""
-        print('------------------------------- Training -------------------------------')
         self._play_and_record(time_size + 1)
         n = len(str(n_epoch-1))
         self._policy_net.epsilon = start_epsilon
+        epsilon_decay = (start_epsilon - end_epsilon) / (n_epoch - 1)
         for epoch in range(n_epoch):
             self._epoch(steps_per_epoch, play_steps, epoch, n, batch_size, time_size)
             test_rewards = self._test_policy(tests_per_epoch)
-            epsilon = self._policy_net.epsilon - (epoch + 1) * (start_epsilon - end_epsilon) / n_epoch
-            self._policy_net.epsilon = max(epsilon, 0.1)
+            self._policy_net.epsilon -= epsilon_decay
             self._writer.add_scalar('test_mean_reward', test_rewards, epoch)
             self._target_net.load_state_dict(self._policy_net.state_dict())
             self.save(epoch)
-        print('---------------------------- Training done -----------------------------')
+        self._policy_net.epsilon += epsilon_decay
 
     def _play_and_record(self, n_steps):
         """Plays the game for n_steps and stores every
@@ -105,14 +119,14 @@ class Trainer:
         batch, time = actions.shape
         chw = screens.shape[2:]
         curr_state_q_values = self._policy_net(
-            torch.tensor(screens[:, :-1], dtype=torch.float32).view(batch*time, *chw)
+            torch.tensor(screens[:, :-1], dtype=torch.float32, device=self.device).view(batch*time, *chw)
         )
         next_state_q_values = self._target_net(
-            torch.tensor(screens[:,  1:], dtype=torch.float32).view(batch*time, *chw)
+            torch.tensor(screens[:,  1:], dtype=torch.float32, device=self.device).view(batch*time, *chw)
         )
         actions = actions.reshape(-1)
-        rewards = torch.tensor(rewards, dtype=torch.float32).view(-1)
-        is_done = torch.tensor(is_done, dtype=torch.float32).view(-1)
+        rewards = torch.tensor(rewards, dtype=torch.float32, device=self.device).view(-1)
+        is_done = torch.tensor(is_done, dtype=torch.float32, device=self.device).view(-1)
 
         q_values_for_actions = curr_state_q_values[np.arange(batch*time), actions]
         target_q_values = rewards + self._gamma * (1.0 - is_done) * next_state_q_values.max(1)[0]
@@ -142,11 +156,6 @@ class Trainer:
         torch.save({
             'policy_net_state': self._policy_net.state_dict(),
             'target_net_state': self._target_net.state_dict(),
-            'optimizer': self._optimizer.state_dict()
+            'optimizer': self._optimizer.state_dict(),
+            'epsilon': self._policy_net.epsilon
         }, self._log_folder + 'checkpoints/epoch_' + str(epoch) + '.pth')
-
-    def load(self, filename):
-        loaded_state = torch.load(self.log_folder + 'checkpoints/' + filename)
-        self._policy_net.load_state_dict(loaded_state['policy_net_state'])
-        self._target_net.load_state_dict(loaded_state['target_net_state'])
-        self._optimizer.load_state_dict(loaded_state['optimizer'])

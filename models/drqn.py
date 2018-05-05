@@ -12,13 +12,14 @@ class DRQN(nn.Module):
         self.conv1 = nn.Conv2d(1, 8, kernel_size=6, stride=3)
         self.conv2 = nn.Conv2d(8, 8, kernel_size=3, stride=2)
 
-        self.fc1 = nn.LSTM(192, 128, batch_first=True)
-        self.fc2 = nn.Linear(128, n_actions)
+        self.lstm = nn.LSTM(192, 128, batch_first=True)
+        self.fc1 = nn.Linear(128, n_actions)
 
-    def forward(self, x_screens):
+    def forward(self, x_screens, hidden):
         """Forward
 
         :param x_screens: screen batch of shape [batch, time, channels, height, width]
+        :param hidden: lstm's hidden state
         :return: estimated q-values of shape [batch, time, n_actions],
         """
         batch, time = x_screens.shape[:2]
@@ -29,18 +30,21 @@ class DRQN(nn.Module):
         x = fun.relu(self.conv2(x))
         x = x.view(batch, time, -1)
 
-        x, hid = self.LSTM(x, None)
+        x, hidden = self.lstm(x, hidden)
 
-        q_values = self.fc2(x)
-        return q_values
+        q_values = self.fc1(x)  # have shape [batch, time, n_actions] now
+        return q_values, hidden
 
+    # TODO: fix
     def sample_actions(self, screens):
         # noinspection PyCallingNonCallable, PyUnresolvedReferences
         screens = torch.tensor(screens, dtype=torch.float32)
         if len(screens.size()) == 3:
             screens.unsqueeze_(0)  # add batch
             screens.unsqueeze_(0)  # add time
-        q_values = self.forward(screens).detach().numpy()
+        q_values, _ = self.forward(screens, None)
+        q_values = q_values.detach().numpy()
+        print(q_values)
 
         eps = self.epsilon
         batch_size, n_actions = q_values.shape

@@ -9,17 +9,17 @@ class DQN(nn.Module):
         super(DQN, self).__init__()
         self.n_actions = n_actions
         self.epsilon = epsilon
-        self.conv1 = nn.Conv2d(3, 32, kernel_size=8, stride=4)
-        self.conv2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
+        self.conv1 = nn.Conv2d(1, 8, kernel_size=6, stride=3)
+        self.conv2 = nn.Conv2d(8, 8, kernel_size=3, stride=2)
 
-        self.fc1 = nn.Linear(4608, 128)
+        self.fc1 = nn.Linear(192, 128)
         self.fc2 = nn.Linear(128, n_actions)
 
     def forward(self, x_screens):
         """Forward
 
-        :param x_screens: screen batch of shape [batch, time, channels, height, width]
-        :return: estimated q-values of shape [batch, time, n_actions],
+        :param x_screens: screen batch of shape [batch, channels, height, width]
+        :return: estimated q-values of shape [batch, n_actions],
         """
         x = fun.relu(self.conv1(x_screens))
         x = fun.relu(self.conv2(x))
