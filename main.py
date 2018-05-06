@@ -13,8 +13,8 @@ if __name__ == '__main__':
     train_env = DoomEnvironment(hp.config_file, False, hp.train_skiprate)
     test_env = DoomEnvironment(hp.config_file, False, hp.test_skiprate)
 
-    policy_net = DQN(2 ** train_env.get_n_buttons())
-    target_net = DQN(2 ** train_env.get_n_buttons())
+    policy_net = DQN(hp.scenario, 2 ** train_env.get_n_buttons())
+    target_net = DQN(hp.scenario, 2 ** train_env.get_n_buttons())
     optimizer = torch.optim.RMSprop(policy_net.parameters(), hp.learning_rate)
 
     if hp.load_model is not None:
@@ -32,7 +32,7 @@ if __name__ == '__main__':
         print('batch_size: {}, time_size: {}, tests_per_epoch: {}'.format(hp.batch_size, hp.time_size,
                                                                           hp.tests_per_epoch))
         er = ReplayMemory(hp.replay_size, hp.screen_size)
-        trainer = Trainer(cuda=hp.cuda,
+        trainer = Trainer(scenario=hp.scenario, cuda=hp.cuda,
                           environment=train_env, test_environment=test_env,
                           experience_replay=er,
                           policy_net=policy_net, target_net=target_net, optimizer=optimizer,
@@ -49,7 +49,7 @@ if __name__ == '__main__':
         policy_net.epsilon = hp.end_epsilon
         for _ in range(hp.watch_n_episodes):
             test_env.reset()
-            reward = watch_agent(policy_net, test_env)
+            reward = watch_agent(hp.scenario, policy_net, test_env)
             print('Episode {} done, reward: {}'.format(_, reward))
             sleep(1.0)
 

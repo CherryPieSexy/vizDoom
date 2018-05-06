@@ -5,15 +5,24 @@ import numpy as np
 
 
 class DQN(nn.Module):
-    def __init__(self, n_actions, epsilon=1.0):
+    def __init__(self, scenario, n_actions, epsilon=1.0):
         super(DQN, self).__init__()
+        self.scenario = scenario
         self.n_actions = n_actions
         self.epsilon = epsilon
-        self.conv1 = nn.Conv2d(1, 8, kernel_size=6, stride=3)
-        self.conv2 = nn.Conv2d(8, 8, kernel_size=3, stride=2)
+        if scenario == 'basic':
+            self.conv1 = nn.Conv2d(1, 8, kernel_size=6, stride=3)
+            self.conv2 = nn.Conv2d(8, 8, kernel_size=3, stride=2)
 
-        self.fc1 = nn.Linear(192, 128)
-        self.fc2 = nn.Linear(128, n_actions)
+            self.fc1 = nn.Linear(192, 128)
+            self.fc2 = nn.Linear(128, n_actions)
+        else:
+            self.conv1 = nn.Conv2d(3, 32, kernel_size=8, stride=4)
+            self.conv2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
+            self.conv3 = nn.Conv2d(64, 64, kernel_size=3)
+
+            self.fc1 = nn.Linear(4608, 512)  # todo: check input dim
+            self.fc2 = nn.Linear(512, n_actions)
 
     def forward(self, x_screens):
         """Forward
@@ -21,11 +30,19 @@ class DQN(nn.Module):
         :param x_screens: screen batch of shape [batch, channels, height, width]
         :return: estimated q-values of shape [batch, n_actions],
         """
-        x = fun.relu(self.conv1(x_screens))
-        x = fun.relu(self.conv2(x))
-        x = x.view(x.size(0), -1)
+        if self.scenario == 'basic':
+            x = fun.relu(self.conv1(x_screens))
+            x = fun.relu(self.conv2(x))
+            x = x.view(x.size(0), -1)
 
-        q_values = self.fc2(fun.relu(self.fc1(x)))
+            q_values = self.fc2(fun.relu(self.fc1(x)))
+        else:
+            x = fun.relu(self.conv1(x_screens))
+            x = fun.relu(self.conv2(x))
+            x = fun.relu(self.conv3(x))
+            x = x.view(x.size(0), -1)
+
+            q_values = self.fc2(fun.relu(self.fc1(x)))
         return q_values
 
     def sample_actions(self, screens):

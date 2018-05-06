@@ -36,8 +36,7 @@ class DoomEnvironment:
         :return: reward, is_done
         """
         reward = self._game.make_action(self._actions[action_id], self._skiprate)
-        is_done = self._game.is_episode_finished()
-        return reward, is_done
+        return reward, self._game.is_episode_finished()
 
     def advance_action_step(self, action_id):
         """Takes id of single action and performs it for self.skiprate frames
@@ -46,10 +45,13 @@ class DoomEnvironment:
         :param action_id: index of action to perform
         :return: is_done
         """
-        self._game.set_action(self._actions[action_id])
+        # a = self._game.set_action(self._actions[action_id])
+        reward = 0.0
         for _ in range(self._skiprate):
-            self._game.advance_action()
-        return self._game.is_episode_finished()
+            reward += self._game.make_action(self._actions[action_id])
+            if self._game.is_episode_finished():
+                break
+        return reward, self._game.is_episode_finished()
 
     def reset(self):
         self._game.new_episode()

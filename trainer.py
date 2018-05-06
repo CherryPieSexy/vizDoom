@@ -5,6 +5,30 @@ import torchvision.transforms as transforms
 from tensorboardX import SummaryWriter
 from tqdm import trange
 
+
+def reward_shaping_basic(reward, prev_obs, next_obs):
+    return reward
+
+
+def reward_shaping_dtc(reward, prev_obs, next_obs):
+    pass  # TODO
+
+
+def reward_shaping_dcr(reward, prev_obs, next_obs):
+    pass  # TODO
+
+
+def reward_shaping_hg(reward, prev_obs, next_obs):
+    pass  # TODO
+
+
+reward_shaping = {
+    'basic': reward_shaping_basic,
+    'defend_the_center': reward_shaping_dtc,
+    'deadly_corridor': reward_shaping_dcr,
+    'health_gathering': reward_shaping_hg
+}
+
 screen_transform = transforms.Compose([
     transforms.ToPILImage(),
     transforms.Grayscale(),
@@ -13,21 +37,25 @@ screen_transform = transforms.Compose([
 ])
 
 
-def watch_agent(agent, env):
+def watch_agent(scenario, agent, env):
+    reward = 0.0
     while True:
         screen, features = env.observe()
         action = agent.sample_actions(screen_transform(screen))[0]
-        done = env.advance_action_step(action)
-        if done:
-            reward = env.get_episode_reward()
-            return reward
+        r, done = env.advance_action_step(action)
+        if not done:
+            _, new_features = env.observe()
+            reward += reward_shaping[scenario](r, features, new_features)
+        else:
+            return reward + r
 
 
 class Trainer:
-    def __init__(self, cuda,
+    def __init__(self, cuda, scenario,
                  environment, test_environment, experience_replay,
                  policy_net, target_net, optimizer,
                  log_folder, gamma=0.99):
+        self.scenario = scenario
         # noinspection PyUnresolvedReferences
         self.device = torch.device("cuda" if cuda else "cpu")
 
@@ -39,6 +67,8 @@ class Trainer:
         self._target_net = target_net.to(self.device)
         self._optimizer = optimizer
 
+        self._episodes_done = 0
+        self._episode_reward = 0.0
         self._log_folder = log_folder
         self._writer = SummaryWriter(log_folder)
         self._gamma = gamma
@@ -72,9 +102,19 @@ class Trainer:
             screen = screen_transform(screen)
             action = self._policy_net.sample_actions(screen)[0]
             reward, done = self._environment.step(action)
-            self._experience_replay.add(screen.numpy(), action, reward, done)
-            if done:
+            if not done:
+                _, new_features = self._environment.observe()
+                # if episode is not ended yet, evaluate shaped reward
+                reward = reward_shaping[self.scenario](reward, features, new_features)
+                self._episode_reward += reward
+            else:
+                # if episode is just ended, reward needn't to be shaped
+                self._episode_reward += reward
+                self._writer.add_scalar('episode_reward', self._episode_reward, self._episodes_done)
+                self._episodes_done += 1
                 self._environment.reset()
+                self._episode_reward = 0.0
+            self._experience_replay.add(screen.numpy(), action, reward, done)
             mean_reward += reward
         return mean_reward / n_steps
 
@@ -136,12 +176,17 @@ class Trainer:
     def _test_policy(self, n_tests):
         rewards = []
         for _ in range(n_tests):
+            episode_reward = 0.0
             while True:
                 screen, features = self._test_environment.observe()
                 action = self._policy_net.sample_actions(screen_transform(screen))[0]
-                _, done = self._test_environment.step(action)
-                if done:
-                    rewards += [self._test_environment.get_episode_reward()]
+                reward, done = self._test_environment.step(action)
+                if not done:
+                    _, new_features = self._test_environment.observe()
+                    episode_reward += reward_shaping[self.scenario](reward, features, new_features)
+                else:
+                    episode_reward += reward
+                    rewards += [episode_reward]
                     self._test_environment.reset()
                     break
         return sum(rewards) / len(rewards)
