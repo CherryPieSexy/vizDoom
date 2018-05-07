@@ -21,7 +21,7 @@ class DQN(nn.Module):
             self.conv2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
             self.conv3 = nn.Conv2d(64, 64, kernel_size=3)
 
-            self.fc1 = nn.Linear(2560, 512)  # todo: check input dim
+            self.fc1 = nn.Linear(2560, 512)
             self.fc2 = nn.Linear(512, n_actions)
 
     def forward(self, x_screens):
@@ -45,9 +45,9 @@ class DQN(nn.Module):
             q_values = self.fc2(fun.relu(self.fc1(x)))
         return q_values
 
-    def sample_actions(self, screens):
+    def sample_actions(self, device, screens):
         # noinspection PyCallingNonCallable, PyUnresolvedReferences
-        screens = torch.tensor(screens, dtype=torch.float32)
+        screens = torch.tensor(screens, dtype=torch.float32).to(device)
         if len(screens.size()) == 3:
             screens.unsqueeze_(0)
         q_values = self.forward(screens).detach().numpy()

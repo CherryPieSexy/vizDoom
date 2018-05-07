@@ -61,7 +61,7 @@ class Trainer:
         for step in range(n_steps):
             screen, features = self._environment.observe()
             screen = screen_transform(self.scenario, screen)
-            action = self._policy_net.sample_actions(screen)[0]
+            action = self._policy_net.sample_actions(self.device, screen)[0]
             reward, done = self._environment.step(action)
             if not done:
                 _, new_features = self._environment.observe()
@@ -146,7 +146,7 @@ class Trainer:
             episode_reward = 0.0
             while True:
                 screen, features = self._test_environment.observe()
-                action = self._policy_net.sample_actions(screen_transform(self.scenario, screen))[0]
+                action = self._policy_net.sample_actions(self.device, screen_transform(self.scenario, screen))[0]
                 reward, done = self._test_environment.step(action)
                 if not done:
                     _, new_features = self._test_environment.observe()

@@ -41,7 +41,7 @@ hp_basic = HyperParameters(scenario='basic', config_file='scenarios/basic.cfg',
 
 # Defend_The_Center
 hp_def_c = HyperParameters(scenario='defend_the_center', config_file='scenarios/defend_the_center.cfg',
-                           train=False, watch_n_episodes=10,
+                           train=False, watch_n_episodes=0,
                            train_skiprate=4, test_skiprate=1,
                            replay_size=10 ** 5, screen_size=(3, 60, 108),
                            log_folder='logs/Defend_The_Center/DQN/', cuda=True,
@@ -53,7 +53,7 @@ hp_def_c = HyperParameters(scenario='defend_the_center', config_file='scenarios/
 
 # Deadly corridor
 hp_d_cor = HyperParameters(scenario='deadly_corridor', config_file='scenarios/deadly_corridor.cfg',
-                           train=False, watch_n_episodes=10,
+                           train=False, watch_n_episodes=0,
                            train_skiprate=4, test_skiprate=1,
                            replay_size=10 ** 5, screen_size=(3, 60, 108),
                            log_folder='logs/Deadly_Corridor/DQN/', cuda=True,
