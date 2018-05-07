@@ -5,8 +5,8 @@ from models.dqn import DQN
 from trainer import Trainer
 from utils import watch_agent
 # from hyperparameters import hp_basic as hp
-from hyperparameters import hp_def_c as hp
-# from hyperparameters import hp_d_cor as hp
+# from hyperparameters import hp_def_c as hp
+from hyperparameters import hp_d_cor as hp
 from time import sleep
 
 

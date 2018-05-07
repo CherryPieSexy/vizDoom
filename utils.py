@@ -19,7 +19,6 @@ def reward_shaping_dcr(reward, prev_obs, next_obs):
     heals_ammo_decrease = next_obs[:2] - prev_obs[:2] < 0
     kill_reward = int(next_obs[2] - prev_obs[2] > 0) * 1.0
     penalty = np.dot(heals_ammo_decrease.astype(int), [-0.1, -0.1])
-    print(penalty, kill_reward)
     return reward - penalty + kill_reward
 
 
