@@ -121,7 +121,8 @@ class Trainer:
         }
         :return: mse loss, torch.tensor
         """
-        screens, actions, rewards, is_done = [sample[key] for key in sample]
+        # keys are shuffled somehow iff cuda is using
+        screens, actions, rewards, is_done = sample['screens'], sample['actions'], sample['rewards'], sample['isfinal']
 
         batch, time = actions.shape
         chw = screens.shape[2:]

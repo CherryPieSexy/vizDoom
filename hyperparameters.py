@@ -44,7 +44,7 @@ hp_def_c = HyperParameters(scenario='defend_the_center', config_file='scenarios/
                            train=True, watch_n_episodes=0,
                            train_skiprate=4, test_skiprate=1,
                            replay_size=10 ** 5, screen_size=(3, 60, 108),
-                           log_folder='logs/Defend_The_Center/DQN/', cuda=True,
+                           log_folder='logs/Defend_The_Center/DQN/', cuda=False,
                            learning_rate=0.0025,
                            n_epoch=40, steps_per_epoch=3000, play_steps=1,
                            batch_size=64, time_size=4, tests_per_epoch=100,
