@@ -29,7 +29,7 @@ HyperParameters = namedtuple('HyperParameters', [
 
 # Basic
 hp_basic = HyperParameters(scenario='basic', config_file='scenarios/basic.cfg',
-                           train=True, watch_n_episodes=1,
+                           train=False, watch_n_episodes=1,
                            train_skiprate=10, test_skiprate=4,
                            replay_size=10 ** 5, screen_size=(1, 30, 45),
                            log_folder='logs/Basic/DQN/', cuda=False,
@@ -41,7 +41,7 @@ hp_basic = HyperParameters(scenario='basic', config_file='scenarios/basic.cfg',
 
 # Defend_The_Center
 hp_def_c = HyperParameters(scenario='defend_the_center', config_file='scenarios/defend_the_center.cfg',
-                           train=False, watch_n_episodes=0,
+                           train=True, watch_n_episodes=0,
                            train_skiprate=4, test_skiprate=1,
                            replay_size=10 ** 5, screen_size=(3, 60, 108),
                            log_folder='logs/Defend_The_Center/DQN/', cuda=True,
