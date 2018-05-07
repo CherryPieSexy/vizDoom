@@ -50,7 +50,7 @@ class DQN(nn.Module):
         screens = torch.tensor(screens, dtype=torch.float32).to(device)
         if len(screens.size()) == 3:
             screens.unsqueeze_(0)
-        q_values = self.forward(screens).detach().numpy()
+        q_values = self.forward(screens).detach().cpu().numpy()
 
         eps = self.epsilon
         batch_size, n_actions = q_values.shape
