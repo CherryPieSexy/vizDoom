@@ -47,9 +47,9 @@ class Trainer:
 
             self._target_net.load_state_dict(self._policy_net.state_dict())
             self._policy_net.epsilon -= epsilon_decay
-            self.save(epoch)
 
         self._policy_net.epsilon += epsilon_decay
+        self.save_policy()
 
     def _play_and_record(self, n_steps):
         """Plays the game for n_steps and stores every
@@ -61,7 +61,7 @@ class Trainer:
         for step in range(n_steps):
             screen, features = self._environment.observe()
             screen = screen_transform(self.scenario, screen)
-            action = self._policy_net.sample_actions(self.device, screen)[0]
+            action = self._policy_net.sample_actions(self.device, screen[None, None])[0]  # add [batch, time] dimensions
             reward, done = self._environment.step(action)
             if not done:
                 _, new_features = self._environment.observe()
@@ -124,12 +124,11 @@ class Trainer:
         screens, actions, rewards, is_done = sample
 
         batch, time = actions.shape
-        chw = screens.shape[2:]
         curr_state_q_values = self._policy_net(
-            torch.tensor(screens[:, :-1], dtype=torch.float32, device=self.device).view(batch*time, *chw)
+            torch.tensor(screens[:, :-1], dtype=torch.float32, device=self.device)
         )
         next_state_q_values = self._target_net(
-            torch.tensor(screens[:,  1:], dtype=torch.float32, device=self.device).view(batch*time, *chw)
+            torch.tensor(screens[:,  1:], dtype=torch.float32, device=self.device)
         )
         actions = actions.reshape(-1)
         rewards = torch.tensor(rewards, dtype=torch.float32, device=self.device).view(-1)
@@ -146,7 +145,8 @@ class Trainer:
             episode_reward = 0.0
             while True:
                 screen, features = self._test_environment.observe()
-                action = self._policy_net.sample_actions(self.device, screen_transform(self.scenario, screen))[0]
+                action = self._policy_net.sample_actions(self.device,
+                                                         screen_transform(self.scenario, screen)[None, None])[0]
                 reward, done = self._test_environment.step(action)
                 if not done:
                     _, new_features = self._test_environment.observe()
@@ -167,10 +167,8 @@ class Trainer:
         loss.backward()
         self._optimizer.step()
 
-    def save(self, epoch):
+    def save_policy(self):
         torch.save({
             'policy_net_state': self._policy_net.state_dict(),
-            'target_net_state': self._target_net.state_dict(),
-            'optimizer': self._optimizer.state_dict(),
-            'epsilon': self._policy_net.epsilon
-        }, self._log_folder + 'checkpoints/epoch_' + str(epoch) + '.pth')
+        }, self._log_folder + 'model.pth')
+        print('Model saved in: {}'.format(self._log_folder + 'model.pth'))

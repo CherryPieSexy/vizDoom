@@ -27,9 +27,12 @@ class DQN(nn.Module):
     def forward(self, x_screens):
         """Forward
 
-        :param x_screens: screen batch of shape [batch, channels, height, width]
-        :return: estimated q-values of shape [batch, n_actions],
+        :param x_screens: screen batch of shape [batch, time, channels, height, width]
+        :return: estimated q-values of shape [batch*time, n_actions],
         """
+        batch, time = x_screens.shape[:2]
+        chw = x_screens.shape[2:]
+        x_screens = x_screens.view(batch*time, *chw)
         if self.scenario == 'basic':
             x = fun.relu(self.conv1(x_screens))
             x = fun.relu(self.conv2(x))
@@ -48,8 +51,6 @@ class DQN(nn.Module):
     def sample_actions(self, device, screens):
         # noinspection PyCallingNonCallable, PyUnresolvedReferences
         screens = torch.tensor(screens, dtype=torch.float32).to(device)
-        if len(screens.size()) == 3:
-            screens.unsqueeze_(0)
         q_values = self.forward(screens).detach().cpu().numpy()
 
         eps = self.epsilon
