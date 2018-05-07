@@ -21,7 +21,7 @@ class DQN(nn.Module):
             self.conv2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
             self.conv3 = nn.Conv2d(64, 64, kernel_size=3)
 
-            self.fc1 = nn.Linear(4608, 512)  # todo: check input dim
+            self.fc1 = nn.Linear(2560, 512)  # todo: check input dim
             self.fc2 = nn.Linear(512, n_actions)
 
     def forward(self, x_screens):

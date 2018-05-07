@@ -49,8 +49,8 @@ class DoomEnvironment:
         reward = 0.0
         for _ in range(self._skiprate):
             reward += self._game.make_action(self._actions[action_id])
-            if self._game.is_episode_finished():
-                break
+            # if self._game.is_episode_finished():
+            #     break
         return reward, self._game.is_episode_finished()
 
     def reset(self):

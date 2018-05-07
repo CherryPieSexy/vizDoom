@@ -2,14 +2,16 @@ import torch
 from doom_environment import DoomEnvironment
 from experience_replay import ReplayMemory
 from models.dqn import DQN
-from trainer import Trainer, watch_agent
-from hyperparameters import hp_basic as hp
+from trainer import Trainer
+from utils import watch_agent
+# from hyperparameters import hp_basic as hp
+from hyperparameters import hp_def_c as hp
 from time import sleep
 
 
 if __name__ == '__main__':
     print('------------------------------ vizDoom main script -----------------------------')
-    print('scenario: {}'.format(hp.config_file))
+    print('scenario: {}'.format(hp.scenario))
     train_env = DoomEnvironment(hp.config_file, False, hp.train_skiprate)
     test_env = DoomEnvironment(hp.config_file, False, hp.test_skiprate)
 

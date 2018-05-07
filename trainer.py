@@ -1,53 +1,9 @@
 import torch
 import numpy as np
 from torch.nn.functional import mse_loss
-import torchvision.transforms as transforms
 from tensorboardX import SummaryWriter
 from tqdm import trange
-
-
-def reward_shaping_basic(reward, prev_obs, next_obs):
-    return reward
-
-
-def reward_shaping_dtc(reward, prev_obs, next_obs):
-    pass  # TODO
-
-
-def reward_shaping_dcr(reward, prev_obs, next_obs):
-    pass  # TODO
-
-
-def reward_shaping_hg(reward, prev_obs, next_obs):
-    pass  # TODO
-
-
-reward_shaping = {
-    'basic': reward_shaping_basic,
-    'defend_the_center': reward_shaping_dtc,
-    'deadly_corridor': reward_shaping_dcr,
-    'health_gathering': reward_shaping_hg
-}
-
-screen_transform = transforms.Compose([
-    transforms.ToPILImage(),
-    transforms.Grayscale(),
-    transforms.Resize((30, 45)),
-    transforms.ToTensor(),
-])
-
-
-def watch_agent(scenario, agent, env):
-    reward = 0.0
-    while True:
-        screen, features = env.observe()
-        action = agent.sample_actions(screen_transform(screen))[0]
-        r, done = env.advance_action_step(action)
-        if not done:
-            _, new_features = env.observe()
-            reward += reward_shaping[scenario](r, features, new_features)
-        else:
-            return reward + r
+from utils import reward_shaping, screen_transform
 
 
 class Trainer:
@@ -85,7 +41,7 @@ class Trainer:
             self._epoch(steps_per_epoch, play_steps, epoch, n, batch_size, time_size)
             test_rewards = self._test_policy(tests_per_epoch)
             self._policy_net.epsilon -= epsilon_decay
-            self._writer.add_scalar('test_mean_reward', test_rewards, epoch)
+            self._writer.add_scalar(self.scenario + '_test_mean_reward', test_rewards, epoch)
             self._target_net.load_state_dict(self._policy_net.state_dict())
             self.save(epoch)
         self._policy_net.epsilon += epsilon_decay
@@ -99,18 +55,17 @@ class Trainer:
         mean_reward = 0.0
         for step in range(n_steps):
             screen, features = self._environment.observe()
-            screen = screen_transform(screen)
+            screen = screen_transform(self.scenario, screen)
             action = self._policy_net.sample_actions(screen)[0]
             reward, done = self._environment.step(action)
             if not done:
                 _, new_features = self._environment.observe()
                 # if episode is not ended yet, evaluate shaped reward
-                reward = reward_shaping[self.scenario](reward, features, new_features)
-                self._episode_reward += reward
+                self._episode_reward += reward_shaping[self.scenario](reward, features, new_features)
             else:
                 # if episode is just ended, reward needn't to be shaped
                 self._episode_reward += reward
-                self._writer.add_scalar('episode_reward', self._episode_reward, self._episodes_done)
+                self._writer.add_scalar(self.scenario + '_episode_reward', self._episode_reward, self._episodes_done)
                 self._episodes_done += 1
                 self._environment.reset()
                 self._episode_reward = 0.0
@@ -139,8 +94,8 @@ class Trainer:
             sample = self._experience_replay.sample(batch_size, time_size)
             td_loss = self._batch_loss(sample)
             self._train_step(td_loss)
-            self._writer.add_scalar('td_loss', td_loss, step + epoch * n_steps)
-            self._writer.add_scalar('train_mean_reward', mean_reward, step + epoch * n_steps)
+            self._writer.add_scalar(self.scenario + '_td_loss', td_loss, step + epoch * n_steps)
+            self._writer.add_scalar(self.scenario + '_train_mean_reward', mean_reward, step + epoch * n_steps)
 
     # noinspection PyCallingNonCallable,PyUnresolvedReferences
     def _batch_loss(self, sample):
@@ -179,7 +134,7 @@ class Trainer:
             episode_reward = 0.0
             while True:
                 screen, features = self._test_environment.observe()
-                action = self._policy_net.sample_actions(screen_transform(screen))[0]
+                action = self._policy_net.sample_actions(screen_transform(self.scenario, screen))[0]
                 reward, done = self._test_environment.step(action)
                 if not done:
                     _, new_features = self._test_environment.observe()
