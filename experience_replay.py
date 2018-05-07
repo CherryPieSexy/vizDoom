@@ -55,9 +55,4 @@ class ReplayMemory:
         rewards = self.rewards[all_indices[:, :-1]]
         is_done = self.is_done[all_indices[:, :-1]]
 
-        return dict(
-            screens=screens,
-            actions=actions,
-            rewards=rewards,
-            isfinal=is_done
-        )
+        return screens, actions, rewards, is_done

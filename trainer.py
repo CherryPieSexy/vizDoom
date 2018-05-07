@@ -113,16 +113,15 @@ class Trainer:
     def _batch_loss(self, sample):
         """Calculates TD loss for a single batch
 
-        sample = {
-            'screens': (np.array) screen batch of shape [batch, (time+1), screen_shape]
-            'actions': (np.array) action batch of shape [batch, time]
-            'rewards': [batch, time]
-            'is_done': [batch, time]
-        }
+        sample = (
+            (np.array) screen batch of shape [batch, (time+1), screen_shape]
+            (np.array) action batch of shape [batch, time]
+            (np.array) reward batch of shape [batch, time]
+            (np.array) finish batch of shape [batch, time]
+        )
         :return: mse loss, torch.tensor
         """
-        # keys are shuffled somehow iff cuda is using
-        screens, actions, rewards, is_done = sample['screens'], sample['actions'], sample['rewards'], sample['isfinal']
+        screens, actions, rewards, is_done = sample
 
         batch, time = actions.shape
         chw = screens.shape[2:]
