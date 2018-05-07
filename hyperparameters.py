@@ -46,7 +46,7 @@ hp_def_c = HyperParameters(scenario='defend_the_center', config_file='scenarios/
                            replay_size=10 ** 5, screen_size=(3, 60, 108),
                            log_folder='logs/Defend_The_Center/DQN/', cuda=True,
                            learning_rate=0.0025,
-                           n_epoch=40, steps_per_epoch=3000, play_steps=1,
+                           n_epoch=30, steps_per_epoch=4000, play_steps=1,
                            batch_size=64, time_size=4, tests_per_epoch=100,
                            start_epsilon=1.0, end_epsilon=0.0,
                            load_model=None)
@@ -58,7 +58,7 @@ hp_d_cor = HyperParameters(scenario='deadly_corridor', config_file='scenarios/de
                            replay_size=10 ** 5, screen_size=(3, 60, 108),
                            log_folder='logs/Deadly_Corridor/DQN/', cuda=True,
                            learning_rate=0.0025,
-                           n_epoch=40, steps_per_epoch=3000, play_steps=1,
+                           n_epoch=30, steps_per_epoch=4000, play_steps=1,
                            batch_size=64, time_size=4, tests_per_epoch=100,
                            start_epsilon=1.0, end_epsilon=1.0,
                            load_model=None)
