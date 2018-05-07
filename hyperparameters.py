@@ -49,7 +49,7 @@ hp_def_c = HyperParameters(scenario='defend_the_center', config_file='scenarios/
                            n_epoch=40, steps_per_epoch=3000, play_steps=1,
                            batch_size=64, time_size=4, tests_per_epoch=100,
                            start_epsilon=1.0, end_epsilon=0.0,
-                           load_model='epoch_19.pth')
+                           load_model=None)
 
 # Deadly corridor
 hp_d_cor = HyperParameters(scenario='deadly_corridor', config_file='scenarios/deadly_corridor.cfg',
