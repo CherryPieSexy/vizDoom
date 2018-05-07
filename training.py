@@ -3,9 +3,9 @@ from doom_environment import DoomEnvironment
 from experience_replay import ReplayMemory
 from models.dqn import DQN
 from trainer import Trainer
-from hyperparameters import hp_basic_train as hp
+# from hyperparameters import hp_basic_train as hp
 # from hyperparameters import hp_def_c_train as hp
-# from hyperparameters import hp_d_cor_train as hp
+from hyperparameters import hp_d_cor_train as hp
 
 
 if __name__ == '__main__':
