@@ -57,4 +57,5 @@ class DoomEnvironment:
         self._game.new_episode()
 
     def get_episode_reward(self):
+        """Careful! Returns ___non-shaped___ episode reward"""
         return self._game.get_total_reward()

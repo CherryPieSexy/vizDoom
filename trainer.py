@@ -2,8 +2,9 @@ import torch
 import numpy as np
 from torch.nn.functional import mse_loss
 from tensorboardX import SummaryWriter
-from tqdm import trange
 from utils import reward_shaping, screen_transform
+from tqdm import trange, TqdmSynchronisationWarning
+import warnings
 
 
 class Trainer:
@@ -39,11 +40,15 @@ class Trainer:
         epsilon_decay = (start_epsilon - end_epsilon) / (n_epoch - 1)
         for epoch in range(n_epoch):
             self._epoch(steps_per_epoch, play_steps, epoch, n, batch_size, time_size)
-            test_rewards = self._test_policy(tests_per_epoch)
-            self._policy_net.epsilon -= epsilon_decay
-            self._writer.add_scalar(self.scenario + '_test_mean_reward', test_rewards, epoch)
+
+            test_shaped, test_rewards = self._test_policy(tests_per_epoch)
+            self._writer.add_scalar(self.scenario + '/test mean shaped', test_shaped, epoch)
+            self._writer.add_scalar(self.scenario + '/test mean reward', test_rewards, epoch)
+
             self._target_net.load_state_dict(self._policy_net.state_dict())
+            self._policy_net.epsilon -= epsilon_decay
             self.save(epoch)
+
         self._policy_net.epsilon += epsilon_decay
 
     def _play_and_record(self, n_steps):
@@ -65,7 +70,10 @@ class Trainer:
             else:
                 # if episode is just ended, reward needn't to be shaped
                 self._episode_reward += reward
-                self._writer.add_scalar(self.scenario + '_episode_reward', self._episode_reward, self._episodes_done)
+                self._writer.add_scalar(self.scenario + '/episode shaped reward',
+                                        self._episode_reward, self._episodes_done)
+                self._writer.add_scalar(self.scenario + '/episode reward',
+                                        self._episode_reward, self._episodes_done)
                 self._episodes_done += 1
                 self._environment.reset()
                 self._episode_reward = 0.0
@@ -87,15 +95,19 @@ class Trainer:
         :param time_size:
         """
         steps = trange(n_steps)
-        steps.set_description('Epoch {:={n}d}'.format(epoch, n=n_epoch), refresh=False)
-        for step in steps:
-            mean_reward = self._play_and_record(play_steps)
 
-            sample = self._experience_replay.sample(batch_size, time_size)
-            td_loss = self._batch_loss(sample)
-            self._train_step(td_loss)
-            self._writer.add_scalar(self.scenario + '_td_loss', td_loss, step + epoch * n_steps)
-            self._writer.add_scalar(self.scenario + '_train_mean_reward', mean_reward, step + epoch * n_steps)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore', TqdmSynchronisationWarning)
+            steps.set_description('Epoch {:={n}d}'.format(epoch, n=n_epoch), refresh=False)
+            for step in steps:
+                mean_reward = self._play_and_record(play_steps)
+
+                sample = self._experience_replay.sample(batch_size, time_size)
+                td_loss = self._batch_loss(sample)
+                self._train_step(td_loss)
+                self._writer.add_scalar(self.scenario + '/td loss', td_loss, step + epoch * n_steps)
+                self._writer.add_scalar(self.scenario + '/train batch mean shaped reward',
+                                        mean_reward, step + epoch * n_steps)
 
     # noinspection PyCallingNonCallable,PyUnresolvedReferences
     def _batch_loss(self, sample):
@@ -129,7 +141,7 @@ class Trainer:
         return loss
 
     def _test_policy(self, n_tests):
-        rewards = []
+        shaped_rewards, rewards = [], []
         for _ in range(n_tests):
             episode_reward = 0.0
             while True:
@@ -141,10 +153,13 @@ class Trainer:
                     episode_reward += reward_shaping[self.scenario](reward, features, new_features)
                 else:
                     episode_reward += reward
-                    rewards += [episode_reward]
+                    shaped_rewards += [episode_reward]
+                    rewards += [self._test_environment.get_episode_reward()]
                     self._test_environment.reset()
                     break
-        return sum(rewards) / len(rewards)
+        mean_shaped = sum(shaped_rewards) / len(shaped_rewards)
+        mean_rewards = sum(rewards) / len(rewards)
+        return mean_shaped, mean_rewards
 
     def _train_step(self, loss):
         self._optimizer.zero_grad()
