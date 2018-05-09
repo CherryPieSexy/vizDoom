@@ -7,24 +7,24 @@ def reward_shaping_basic(reward, prev_obs, next_obs):
     return reward
 
 
-def reward_shaping_dtc(reward, prev_obs, next_obs):
-    # observation = [ammo, health]
-    heals_ammo_decrease = next_obs - prev_obs < 0
-    penalty = np.dot(heals_ammo_decrease.astype(int), [-0.1, -0.1])
-    return reward + penalty
-
-
 def reward_shaping_dcr(reward, prev_obs, next_obs):
     # observation = [ammo, health, kill count]
-    heals_ammo_decrease = next_obs[:2] - prev_obs[:2] < 0
+    ammo_health_decrease = next_obs[:2] - prev_obs[:2] < 0
     kill_reward = int(next_obs[2] - prev_obs[2] > 0) * 10.0
-    penalty = np.dot(heals_ammo_decrease.astype(int), [-3.0, -5.0])
+    penalty = np.dot(ammo_health_decrease.astype(int), [-3.0, -5.0])
     return reward - penalty + kill_reward
 
 
+def reward_shaping_dtc(reward, prev_obs, next_obs):
+    # observation = [ammo, health]
+    ammo_health_decrease = next_obs - prev_obs < 0
+    penalty = np.dot(ammo_health_decrease.astype(int), [-0.1, -0.1])
+    return reward + penalty
+
+
 def reward_shaping_hg(reward, prev_obs, next_obs):
-    healing = next_obs[0] - prev_obs[0]
-    return reward + int(healing > 0) * healing
+    health = next_obs[0] - prev_obs[0]
+    return reward + int(health > 0) * health
 
 
 reward_shaping = {
