@@ -7,14 +7,16 @@ def reward_shaping_basic(reward, prev_obs, next_obs):
     return reward
 
 
+# deadly corridor
 def reward_shaping_dcr(reward, prev_obs, next_obs):
     # observation = [ammo, health, kill count]
     ammo_health_decrease = next_obs[:2] - prev_obs[:2] < 0
-    kill_reward = int(next_obs[2] - prev_obs[2] > 0) * 10.0
+    kill_reward = int(next_obs[2] - prev_obs[2] > 0) * 25.0
     penalty = np.dot(ammo_health_decrease.astype(int), [-3.0, -5.0])
     return reward - penalty + kill_reward
 
 
+# defend the center
 def reward_shaping_dtc(reward, prev_obs, next_obs):
     # observation = [ammo, health]
     ammo_health_decrease = next_obs - prev_obs < 0

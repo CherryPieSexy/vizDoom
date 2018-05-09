@@ -141,12 +141,28 @@ class Trainer:
         actions = actions[:, self._not_update:].reshape(-1)
         rewards = torch.tensor(rewards[:, self._not_update:], dtype=torch.float32, device=self.device).view(-1)
         is_done = torch.tensor(is_done[:, self._not_update:], dtype=torch.float32, device=self.device).view(-1)
-        # actions = actions.reshape(-1)
-        # rewards = torch.tensor(rewards, dtype=torch.float32, device=self.device).view(-1)
-        # is_done = torch.tensor(is_done, dtype=torch.float32, device=self.device).view(-1)
+
         q_values_for_actions = curr_state_q_values[np.arange(batch*(time - self._not_update)), actions]
         target_q_values = rewards + self._gamma * (1.0 - is_done) * next_state_q_values.max(1)[0]
         loss = mse_loss(q_values_for_actions, target_q_values.detach())
+
+        # TODO: preparation to Double and Multi-step learning
+        # curr_state_q_values = self._policy_net(screens, None)
+        # argmax_a = curr_state_q_values[:, -1].max[0]
+        # curr_state_q_values = curr_state_q_values[:, self._not_update:-1].view(batch*(time-self._not_update), -1)
+        #
+        # next_state_q_values = self._target_net(screens[:, 1:], None)
+        # q_target = next_state_q_values[:, argmax_a]
+        #
+        # target_q_values = []
+        # for i in reversed(range(time)):
+        #     q_target = rewards[i] + self._gamma * (1.0 - is_done[i]) * q_target
+        #     target_q_values += q_target
+        # target_q_values = torch.tensor(reversed(target_q_values)[:, self._not_update:],
+        #                                dtype=torch.float32, device=self.device)
+        # q_values_for_actions = curr_state_q_values[np.arange(batch*(time - self._not_update)), actions]
+        #
+        # loss = mse_loss(q_values_for_actions, target_q_values)
         return loss
 
     def _test_policy(self, n_tests):
