@@ -24,40 +24,43 @@ class DQN(nn.Module):
             self.fc1 = nn.Linear(2560, 512)
             self.fc2 = nn.Linear(512, n_actions)
 
-    def forward(self, x_screens):
+    def forward(self, x_screens, hidden):
         """Forward
 
         :param x_screens: screen batch of shape [batch, time, channels, height, width]
+        :param hidden: fake lstm-state
         :return: estimated q-values of shape [batch*time, n_actions],
         """
         batch, time = x_screens.shape[:2]
         chw = x_screens.shape[2:]
-        x_screens = x_screens.view(batch*time, *chw)
+        x_screens = x_screens.contiguous().view(batch*time, *chw)
         if self.scenario == 'basic':
             x = fun.relu(self.conv1(x_screens))
             x = fun.relu(self.conv2(x))
-            x = x.view(x.size(0), -1)
-
-            q_values = self.fc2(fun.relu(self.fc1(x)))
         else:
             x = fun.relu(self.conv1(x_screens))
             x = fun.relu(self.conv2(x))
             x = fun.relu(self.conv3(x))
-            x = x.view(x.size(0), -1)
+        x = x.view(x.size(0), -1)
+        q_values = self.fc2(fun.relu(self.fc1(x)))
+        return q_values, hidden  # q_values have shape [batch, n_actions]
 
-            q_values = self.fc2(fun.relu(self.fc1(x)))
-        return q_values
-
-    def sample_actions(self, device, screens):
+    def sample_actions(self, device, screens, prev_state):
         # noinspection PyCallingNonCallable, PyUnresolvedReferences
-        screens = torch.tensor(screens, dtype=torch.float32).to(device)
-        q_values = self.forward(screens).detach().cpu().numpy()
-
-        eps = self.epsilon
+        screens = torch.tensor(screens, dtype=torch.float32, device=device)
+        q_values, next_state = self.forward(screens, prev_state)
+        q_values = q_values.detach().cpu().numpy()
         batch_size, n_actions = q_values.shape
 
+        eps = self.epsilon
         random_actions = np.random.choice(n_actions, size=batch_size)
         best_actions = q_values.argmax(axis=-1)
 
         should_explore = np.random.choice([0, 1], batch_size, p=[1-eps, eps])
-        return np.where(should_explore, random_actions, best_actions)
+        return np.where(should_explore, random_actions, best_actions), next_state
+
+
+if __name__ == '__main__':
+    net = DQN('basic', 8, 1.0)
+    a = net.sample_actions('cpu', np.random.normal(size=[1, 3, 1, 30, 45]), None)
+    print(a)

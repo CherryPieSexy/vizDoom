@@ -17,13 +17,14 @@ def reward_shaping_dtc(reward, prev_obs, next_obs):
 def reward_shaping_dcr(reward, prev_obs, next_obs):
     # observation = [ammo, health, kill count]
     heals_ammo_decrease = next_obs[:2] - prev_obs[:2] < 0
-    kill_reward = int(next_obs[2] - prev_obs[2] > 0) * 1.0
-    penalty = np.dot(heals_ammo_decrease.astype(int), [-0.1, -0.1])
+    kill_reward = int(next_obs[2] - prev_obs[2] > 0) * 10.0
+    penalty = np.dot(heals_ammo_decrease.astype(int), [-3.0, -5.0])
     return reward - penalty + kill_reward
 
 
 def reward_shaping_hg(reward, prev_obs, next_obs):
-    pass  # TODO
+    healing = next_obs[0] - prev_obs[0]
+    return reward + int(healing > 0) * healing
 
 
 reward_shaping = {
@@ -56,9 +57,15 @@ def screen_transform(scenario, screen):
 def watch_agent(scenario, agent, env):
     """Agent plays in visible environment until done. Returns reward and shaping(reward)"""
     reward = 0.0
+    policy_state = None
+    env.reset()
     while True:
         screen, features = env.observe()
-        action = agent.sample_actions('cpu', screen_transform(scenario, screen)[None, None])[0]
+        action, policy_state = agent.sample_actions(
+            'cpu',
+            screen_transform(scenario, screen)[None, None],
+            policy_state)
+        action = action[0]
         r, done = env.advance_action_step(action)
         if not done:
             _, new_features = env.observe()

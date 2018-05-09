@@ -10,7 +10,7 @@ import warnings
 class Trainer:
     def __init__(self, cuda, scenario,
                  environment, test_environment, experience_replay,
-                 policy_net, target_net, optimizer,
+                 policy_net, target_net, optimizer, not_update,
                  log_folder, gamma=0.99):
         self.scenario = scenario
         # noinspection PyUnresolvedReferences
@@ -24,8 +24,11 @@ class Trainer:
         self._target_net = target_net.to(self.device)
         self._optimizer = optimizer
 
+        self._not_update = not_update
+
         self._episodes_done = 0
         self._episode_reward = 0.0
+        self._policy_state = None
         self._log_folder = log_folder
         self._writer = SummaryWriter(log_folder)
         self._gamma = gamma
@@ -35,7 +38,7 @@ class Trainer:
               tests_per_epoch, start_epsilon, end_epsilon):
         """General training function"""
         self._play_and_record(time_size + 1)
-        n = len(str(n_epoch-1))
+        n = len(str(n_epoch - 1))
         self._policy_net.epsilon = start_epsilon
         epsilon_decay = (start_epsilon - end_epsilon) / (n_epoch - 1)
         for epoch in range(n_epoch):
@@ -61,7 +64,11 @@ class Trainer:
         for step in range(n_steps):
             screen, features = self._environment.observe()
             screen = screen_transform(self.scenario, screen)
-            action = self._policy_net.sample_actions(self.device, screen[None, None])[0]  # add [batch, time] dimensions
+            action, self._policy_state = self._policy_net.sample_actions(
+                self.device,
+                screen[None, None],  # add [batch, time] dimensions
+                self._policy_state)
+            action = action[0]
             reward, done = self._environment.step(action)
             if not done:
                 _, new_features = self._environment.observe()
@@ -77,6 +84,8 @@ class Trainer:
                 self._episodes_done += 1
                 self._environment.reset()
                 self._episode_reward = 0.0
+
+                self._policy_state = None
             self._experience_replay.add(screen.numpy(), action, reward, done)
             mean_reward += reward
         return mean_reward / n_steps
@@ -103,14 +112,14 @@ class Trainer:
                 mean_reward = self._play_and_record(play_steps)
 
                 sample = self._experience_replay.sample(batch_size, time_size)
-                td_loss = self._batch_loss(sample)
+                td_loss = self._batch_loss(sample, batch_size, time_size)
                 self._train_step(td_loss)
                 self._writer.add_scalar(self.scenario + '/td loss', td_loss, step + epoch * n_steps)
                 self._writer.add_scalar(self.scenario + '/train batch mean shaped reward',
                                         mean_reward, step + epoch * n_steps)
 
     # noinspection PyCallingNonCallable,PyUnresolvedReferences
-    def _batch_loss(self, sample):
+    def _batch_loss(self, sample, batch, time):
         """Calculates TD loss for a single batch
 
         sample = (
@@ -122,19 +131,20 @@ class Trainer:
         :return: mse loss, torch.tensor
         """
         screens, actions, rewards, is_done = sample
+        screens = torch.tensor(screens, dtype=torch.float32, device=self.device)
 
-        batch, time = actions.shape
-        curr_state_q_values = self._policy_net(
-            torch.tensor(screens[:, :-1], dtype=torch.float32, device=self.device)
-        )
-        next_state_q_values = self._target_net(
-            torch.tensor(screens[:,  1:], dtype=torch.float32, device=self.device)
-        )
-        actions = actions.reshape(-1)
-        rewards = torch.tensor(rewards, dtype=torch.float32, device=self.device).view(-1)
-        is_done = torch.tensor(is_done, dtype=torch.float32, device=self.device).view(-1)
+        curr_state_q_values, _ = self._policy_net(screens[:, :-1], None)
+        next_state_q_values, _ = self._target_net(screens[:, 1:], None)
+        curr_state_q_values = curr_state_q_values[:, self._not_update:].view(batch*(time-self._not_update), -1)
+        next_state_q_values = next_state_q_values[:, self._not_update:].view(batch*(time-self._not_update), -1)
 
-        q_values_for_actions = curr_state_q_values[np.arange(batch*time), actions]
+        actions = actions[:, self._not_update:].reshape(-1)
+        rewards = torch.tensor(rewards[:, self._not_update:], dtype=torch.float32, device=self.device).view(-1)
+        is_done = torch.tensor(is_done[:, self._not_update:], dtype=torch.float32, device=self.device).view(-1)
+        # actions = actions.reshape(-1)
+        # rewards = torch.tensor(rewards, dtype=torch.float32, device=self.device).view(-1)
+        # is_done = torch.tensor(is_done, dtype=torch.float32, device=self.device).view(-1)
+        q_values_for_actions = curr_state_q_values[np.arange(batch*(time - self._not_update)), actions]
         target_q_values = rewards + self._gamma * (1.0 - is_done) * next_state_q_values.max(1)[0]
         loss = mse_loss(q_values_for_actions, target_q_values.detach())
         return loss
@@ -143,10 +153,15 @@ class Trainer:
         shaped_rewards, rewards = [], []
         for _ in range(n_tests):
             episode_reward = 0.0
+            policy_state = None
+            self._test_environment.reset()
             while True:
                 screen, features = self._test_environment.observe()
-                action = self._policy_net.sample_actions(self.device,
-                                                         screen_transform(self.scenario, screen)[None, None])[0]
+                action, policy_state = self._policy_net.sample_actions(
+                    self.device,
+                    screen_transform(self.scenario, screen)[None, None],
+                    policy_state)
+                action = action[0]
                 reward, done = self._test_environment.step(action)
                 if not done:
                     _, new_features = self._test_environment.observe()
@@ -155,7 +170,6 @@ class Trainer:
                     episode_reward += reward
                     shaped_rewards += [episode_reward]
                     rewards += [self._test_environment.get_episode_reward()]
-                    self._test_environment.reset()
                     break
         mean_shaped = sum(shaped_rewards) / len(shaped_rewards)
         mean_rewards = sum(rewards) / len(rewards)
