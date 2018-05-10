@@ -4,8 +4,8 @@ from utils import watch_agent
 from models import agent
 from time import sleep
 # from hyperparameters import hp_basic_test as hp
-from hyperparameters import hp_d_cor_test as hp
-# from hyperparameters import hp_def_c_test as hp
+# from hyperparameters import hp_d_cor_test as hp
+from hyperparameters import hp_def_c_test as hp
 # from hyperparameters import hp_h_gth_test as hp
 
 if __name__ == '__main__':
@@ -13,11 +13,10 @@ if __name__ == '__main__':
 
     test_env = DoomEnvironment('scenarios/' + hp.scenario + '.cfg', False, hp.test_skiprate)
     test_env.make_visible()
-    policy_net = agent[hp.agent](hp.scenario, 2 ** test_env.get_n_buttons())
+    policy_net = agent[hp.agent](hp.scenario, 2 ** test_env.get_n_buttons(), hp.epsilon)
     policy_net.load_state_dict(load(
         'logs/' + hp.scenario + '/' + hp.agent + '/model.pth',
         map_location=lambda storage, loc: storage)['policy_net_state'])
-    policy_net.epsilon = hp.epsilon
 
     print('scenario: {}, agent: {}'.format(hp.scenario, hp.agent))
     print('loaded model: {}'.format('logs/' + hp.scenario + '/' + hp.agent + '/model.pth'))

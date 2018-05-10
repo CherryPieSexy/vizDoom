@@ -39,7 +39,7 @@ hp_basic_train = HyperParametersTrain(scenario='basic', agent='DQN', cuda=False,
                                       start_epsilon=1.0, end_epsilon=0.01
                                       )
 hp_basic_test = HyperParametersTest(scenario='basic', agent='DQN',
-                                    test_skiprate=4, epsilon=0.1, n_episodes=10)
+                                    test_skiprate=4, epsilon=0.01, n_episodes=10)
 
 # Deadly corridor
 hp_d_cor_train = HyperParametersTrain(scenario='deadly_corridor', agent='DQN', cuda=True,
@@ -51,7 +51,7 @@ hp_d_cor_train = HyperParametersTrain(scenario='deadly_corridor', agent='DQN', c
                                       start_epsilon=1.0, end_epsilon=0.01
                                       )
 hp_d_cor_test = HyperParametersTest(scenario='deadly_corridor', agent='DQN',
-                                    test_skiprate=1, epsilon=0.1, n_episodes=10)
+                                    test_skiprate=1, epsilon=0.01, n_episodes=10)
 
 # Defend The Center
 hp_def_c_train = HyperParametersTrain(scenario='defend_the_center', agent='DQN', cuda=True,
@@ -63,7 +63,7 @@ hp_def_c_train = HyperParametersTrain(scenario='defend_the_center', agent='DQN',
                                       start_epsilon=1.0, end_epsilon=0.01
                                       )
 hp_def_c_test = HyperParametersTest(scenario='defend_the_center', agent='DQN',
-                                    test_skiprate=1, epsilon=0.1, n_episodes=5)
+                                    test_skiprate=1, epsilon=0.01, n_episodes=5)
 
 # Health Gathering
 hp_h_gth_train = HyperParametersTrain(scenario='health_gathering', agent='DQN', cuda=True,
@@ -75,4 +75,4 @@ hp_h_gth_train = HyperParametersTrain(scenario='health_gathering', agent='DQN', 
                                       start_epsilon=1.0, end_epsilon=0.01
                                       )
 hp_h_gth_test = HyperParametersTest(scenario='health_gathering', agent='DQN',
-                                    test_skiprate=1, epsilon=0.1, n_episodes=5)
+                                    test_skiprate=1, epsilon=0.01, n_episodes=5)

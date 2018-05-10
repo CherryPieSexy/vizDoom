@@ -200,5 +200,5 @@ class Trainer:
     def save_policy(self):
         torch.save({
             'policy_net_state': self._policy_net.state_dict(),
-        }, self._log_folder + 'model.pth')
-        print('Model saved in: {}'.format(self._log_folder + 'model.pth'))
+        }, self._log_folder + '/model.pth')
+        print('Model saved in: {}'.format(self._log_folder + '/model.pth'))
