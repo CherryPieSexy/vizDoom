@@ -46,12 +46,11 @@ class DRQN(nn.Module):
         q_values = self.fc(x)  # have shape [batch, time, n_actions] now
         return q_values, hidden
 
-    # TODO: make use of hidden states
     def sample_actions(self, device, screens, prev_state):
         # noinspection PyCallingNonCallable, PyUnresolvedReferences
         screens = torch.tensor(screens, dtype=torch.float32, device=device)
         q_values, next_state = self.forward(screens, prev_state)
-        q_values = q_values.detach().numpy()
+        q_values = q_values.detach().cpu().numpy()
         batch_size, time_size, n_actions = q_values.shape
         q_values = q_values.reshape([batch_size*time_size, n_actions])
 
