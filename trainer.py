@@ -135,8 +135,10 @@ class Trainer:
 
         curr_state_q_values, _ = self._policy_net(screens[:, :-1], None)
         next_state_q_values, _ = self._target_net(screens[:, 1:], None)
-        curr_state_q_values = curr_state_q_values[:, self._not_update:].view(batch*(time-self._not_update), -1)
-        next_state_q_values = next_state_q_values[:, self._not_update:].view(batch*(time-self._not_update), -1)
+        curr_state_q_values = curr_state_q_values[:, self._not_update:].\
+            contiguous().view(batch*(time-self._not_update), -1)
+        next_state_q_values = next_state_q_values[:, self._not_update:].\
+            contiguous().view(batch*(time-self._not_update), -1)
 
         actions = actions[:, self._not_update:].reshape(-1)
         rewards = torch.tensor(rewards[:, self._not_update:], dtype=torch.float32, device=self.device).view(-1)
