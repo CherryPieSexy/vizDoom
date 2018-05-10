@@ -3,3 +3,5 @@
 __pycache__
 _vizdoom.ini
 run_docker.sh
+model.pth
+events*
