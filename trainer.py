@@ -36,7 +36,7 @@ class Trainer:
               steps_per_epoch, play_steps, batch_size, time_size,
               tests_per_epoch, start_epsilon, end_epsilon):
         """General training function"""
-        self._play_and_record(time_size + 1)
+        self._play_and_record(1000)
         n = len(str(n_epoch - 1))
         self._policy_net.epsilon = start_epsilon
         epsilon_decay = (start_epsilon - end_epsilon) / (n_epoch - 1)

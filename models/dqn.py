@@ -41,7 +41,7 @@ class DQN(nn.Module):
             x = fun.relu(self.conv1(x_screens))
             x = fun.relu(self.conv2(x))
             x = fun.relu(self.conv3(x))
-        x = x.view(x.size(0), -1)
+        x = x.view(batch, time, -1)
         q_values = self.fc2(fun.relu(self.fc1(x)))
         return q_values, hidden  # q_values have shape [batch, n_actions]
 
@@ -50,13 +50,14 @@ class DQN(nn.Module):
         screens = torch.tensor(screens, dtype=torch.float32, device=device)
         q_values, next_state = self.forward(screens, prev_state)
         q_values = q_values.detach().cpu().numpy()
-        batch_size, n_actions = q_values.shape
+        batch_size, time_size, n_actions = q_values.shape
+        q_values = q_values.reshape([batch_size * time_size, n_actions])
 
         eps = self.epsilon
-        random_actions = np.random.choice(n_actions, size=batch_size)
+        random_actions = np.random.choice(n_actions, size=batch_size*time_size)
         best_actions = q_values.argmax(axis=-1)
 
-        should_explore = np.random.choice([0, 1], batch_size, p=[1-eps, eps])
+        should_explore = np.random.choice([0, 1], batch_size*time_size, p=[1-eps, eps])
         return np.where(should_explore, random_actions, best_actions), next_state
 
 
