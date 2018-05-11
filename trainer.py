@@ -1,5 +1,4 @@
 import torch
-import numpy as np
 from torch.nn.functional import mse_loss
 from tensorboardX import SummaryWriter
 from utils import reward_shaping, screen_transform
@@ -43,13 +42,14 @@ class Trainer:
         epsilon_decay = (start_epsilon - end_epsilon) / (n_epoch - 1)
         for epoch in range(n_epoch):
             self._epoch(steps_per_epoch, play_steps, epoch, n, batch_size, time_size)
-
+            epsilon = self._policy_net.epsilon
+            self._policy_net.epsilon = end_epsilon
             test_shaped, test_rewards = self._test_policy(tests_per_epoch)
             self._writer.add_scalar(self.scenario + '/test mean shaped', test_shaped, epoch)
             self._writer.add_scalar(self.scenario + '/test mean reward', test_rewards, epoch)
 
             self._target_net.load_state_dict(self._policy_net.state_dict())
-            self._policy_net.epsilon -= epsilon_decay
+            self._policy_net.epsilon = epsilon - epsilon_decay
 
         self._policy_net.epsilon += epsilon_decay
         self.save_policy()
@@ -133,38 +133,29 @@ class Trainer:
         screens, actions, rewards, is_done = sample
         screens = torch.tensor(screens, dtype=torch.float32, device=self.device)
 
-        curr_state_q_values, _ = self._policy_net(screens[:, :-1], None)
+        curr_state_q_values, _ = self._policy_net(screens[:, :], None)
         next_state_q_values, _ = self._target_net(screens[:, 1:], None)
-        curr_state_q_values = curr_state_q_values[:, self._not_update:].\
-            contiguous().view(batch*(time-self._not_update), -1)
-        next_state_q_values = next_state_q_values[:, self._not_update:].\
-            contiguous().view(batch*(time-self._not_update), -1)
 
-        actions = actions[:, self._not_update:].reshape(-1)
-        rewards = torch.tensor(rewards[:, self._not_update:], dtype=torch.float32, device=self.device).view(-1)
-        is_done = torch.tensor(is_done[:, self._not_update:], dtype=torch.float32, device=self.device).view(-1)
+        q_values_for_actions = torch.zeros(batch, time, dtype=torch.float32, device=self.device)
+        for i in range(batch):
+            for j in range(time):
+                q_values_for_actions[i, j] = curr_state_q_values[i, j, actions[i, j]]
 
-        q_values_for_actions = curr_state_q_values[np.arange(batch*(time - self._not_update)), actions]
-        target_q_values = rewards + self._gamma * (1.0 - is_done) * next_state_q_values.max(1)[0]
-        loss = mse_loss(q_values_for_actions, target_q_values.detach())
+        rewards = torch.tensor(rewards, dtype=torch.float32, device=self.device)
+        is_done = torch.tensor(is_done, dtype=torch.float32, device=self.device)
 
-        # TODO: preparation to Double and Multi-step learning
-        # curr_state_q_values = self._policy_net(screens, None)
-        # argmax_a = curr_state_q_values[:, -1].max[0]
-        # curr_state_q_values = curr_state_q_values[:, self._not_update:-1].view(batch*(time-self._not_update), -1)
-        #
-        # next_state_q_values = self._target_net(screens[:, 1:], None)
-        # q_target = next_state_q_values[:, argmax_a]
-        #
-        # target_q_values = []
+        target_q_values = rewards + self._gamma * (1.0 - is_done) * next_state_q_values.max(2)[0]
+
+        # a_online = curr_state_q_values[:, -1].max(1)[1]
+        # target_q_values = torch.zeros(batch, time, dtype=torch.float32, device=self.device)
+        # q_value = torch.zeros(batch, dtype=torch.float32, device=self.device)
+        # for i in range(batch):
+        #     q_value[i] = next_state_q_values[i, -1, a_online[i]]
         # for i in reversed(range(time)):
-        #     q_target = rewards[i] + self._gamma * (1.0 - is_done[i]) * q_target
-        #     target_q_values += q_target
-        # target_q_values = torch.tensor(reversed(target_q_values)[:, self._not_update:],
-        #                                dtype=torch.float32, device=self.device)
-        # q_values_for_actions = curr_state_q_values[np.arange(batch*(time - self._not_update)), actions]
-        #
-        # loss = mse_loss(q_values_for_actions, target_q_values)
+        #     q_value = rewards[:, i] + self._gamma * (1.0 - is_done[:, i]) * q_value
+        #     target_q_values[:, i] = q_value
+
+        loss = mse_loss(q_values_for_actions[:, self._not_update:], target_q_values[:, self._not_update:].detach())
         return loss
 
     def _test_policy(self, n_tests):
