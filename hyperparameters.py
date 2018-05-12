@@ -50,11 +50,11 @@ hp_d_cor_train = HyperParametersTrain(scenario='deadly_corridor', agent='DRQN', 
                                       batch_size=128, time_size=7, not_update=4, tests_per_epoch=50,
                                       start_epsilon=1.0, end_epsilon=0.01
                                       )
-hp_d_cor_test = HyperParametersTest(scenario='deadly_corridor', agent='DRQN',
+hp_d_cor_test = HyperParametersTest(scenario='deadly_corridor', agent='DQN',
                                     test_skiprate=1, epsilon=0.01, n_episodes=10)
 
 # Defend The Center
-hp_def_c_train = HyperParametersTrain(scenario='defend_the_center', agent='DQN', cuda=False,
+hp_def_c_train = HyperParametersTrain(scenario='defend_the_center', agent='DRQN', cuda=True,
                                       train_skiprate=4, test_skiprate=1,
                                       replay_size=10 ** 5, screen_size=(3, 60, 108),
                                       learning_rate=0.001,
@@ -62,11 +62,11 @@ hp_def_c_train = HyperParametersTrain(scenario='defend_the_center', agent='DQN',
                                       batch_size=128, time_size=7, not_update=4, tests_per_epoch=30,
                                       start_epsilon=1.0, end_epsilon=0.01
                                       )
-hp_def_c_test = HyperParametersTest(scenario='defend_the_center', agent='DRQN',
+hp_def_c_test = HyperParametersTest(scenario='defend_the_center', agent='DQN',
                                     test_skiprate=1, epsilon=0.01, n_episodes=5)
 
 # Health Gathering
-hp_h_gth_train = HyperParametersTrain(scenario='health_gathering', agent='DQN', cuda=True,
+hp_h_gth_train = HyperParametersTrain(scenario='health_gathering', agent='DRQN', cuda=True,
                                       train_skiprate=4, test_skiprate=1,
                                       replay_size=10 ** 5, screen_size=(3, 60, 108),
                                       learning_rate=0.001,

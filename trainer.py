@@ -186,7 +186,7 @@ class Trainer:
 
     def _train_step(self, loss):
         self._optimizer.zero_grad()
-        # TODO: add gradient clipping in future
+        torch.nn.utils.clip_grad_norm_(self._policy_net.parameters, 1.0)
         loss.backward()
         self._optimizer.step()
 

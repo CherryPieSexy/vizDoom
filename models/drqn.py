@@ -21,7 +21,7 @@ class DRQN(nn.Module):
             self.conv2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
             self.conv3 = nn.Conv2d(64, 64, kernel_size=3)
 
-            self.lstm = nn.LSTM(2560, 512)
+            self.lstm = nn.LSTM(2560, 512, batch_first=True)
             self.fc = nn.Linear(512, n_actions)
 
     def forward(self, x_screens, hidden):
