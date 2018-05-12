@@ -186,7 +186,7 @@ class Trainer:
 
     def _train_step(self, loss):
         self._optimizer.zero_grad()
-        torch.nn.utils.clip_grad_norm_(self._policy_net.parameters, 1.0)
+        torch.nn.utils.clip_grad_norm_(self._policy_net.parameters(), 1.0)
         loss.backward()
         self._optimizer.step()
 
