@@ -16,7 +16,7 @@ if __name__ == '__main__':
     print('\ntraining parameters:')
     print('n_epoch: {}, steps_per_epoch: {}, play_steps: {}'.format(hp.n_epoch, hp.steps_per_epoch, hp.play_steps))
     print('batch_size: {}, time_size: {}, not_update: {}'.format(hp.batch_size, hp.time_size, hp.not_update))
-    print('tests_per_epoch'.format(hp.tests_per_epoch))
+    print('tests_per_epoch: {}'.format(hp.tests_per_epoch))
 
     train_env = DoomEnvironment('scenarios/' + hp.scenario + '.cfg', False, hp.train_skiprate)
     test_env = DoomEnvironment('scenarios/' + hp.scenario + '.cfg', False, hp.test_skiprate)

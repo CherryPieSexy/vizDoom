@@ -25,8 +25,8 @@ def reward_shaping_dtc(reward, prev_obs, next_obs):
 
 
 def reward_shaping_hg(reward, prev_obs, next_obs):
-    health = next_obs[0] - prev_obs[0]
-    return reward + int(health > 0) * health
+    healing = next_obs[0] - prev_obs[0]
+    return reward + int(healing > 0) * healing
 
 
 reward_shaping = {

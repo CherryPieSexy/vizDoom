@@ -4,6 +4,7 @@ from tensorboardX import SummaryWriter
 from utils import reward_shaping, screen_transform
 from tqdm import trange, TqdmSynchronisationWarning
 import warnings
+import numpy as np
 
 
 class Trainer:
@@ -21,6 +22,7 @@ class Trainer:
 
         self._policy_net = policy_net.to(self.device)
         self._target_net = target_net.to(self.device)
+        self._target_net.eval()  # should always be in 'eval' mode
         self._optimizer = optimizer
 
         self._not_update = not_update
@@ -41,6 +43,7 @@ class Trainer:
         self._policy_net.epsilon = start_epsilon
         epsilon_decay = (start_epsilon - end_epsilon) / (n_epoch - 1)
         for epoch in range(n_epoch):
+            self._target_net.load_state_dict(self._policy_net.state_dict())
             self._epoch(steps_per_epoch, play_steps, epoch, n, batch_size, time_size)
             epsilon = self._policy_net.epsilon
             self._policy_net.epsilon = end_epsilon
@@ -48,7 +51,6 @@ class Trainer:
             self._writer.add_scalar(self.scenario + '/test mean shaped', test_shaped, epoch)
             self._writer.add_scalar(self.scenario + '/test mean reward', test_rewards, epoch)
 
-            self._target_net.load_state_dict(self._policy_net.state_dict())
             self._policy_net.epsilon = epsilon - epsilon_decay
 
         self._policy_net.epsilon += epsilon_decay
@@ -60,6 +62,7 @@ class Trainer:
 
         Returns mean reward
         """
+        self._policy_net.eval()
         mean_reward = 0.0
         for step in range(n_steps):
             screen, features = self._environment.observe()
@@ -130,58 +133,63 @@ class Trainer:
         )
         :return: mse loss, torch.tensor
         """
+        self._policy_net.train()
         screens, actions, rewards, is_done = sample
         screens = torch.tensor(screens, dtype=torch.float32, device=self.device)
-
-        curr_state_q_values, _ = self._policy_net(screens[:, :], None)
-        next_state_q_values, _ = self._target_net(screens[:, 1:], None)
-
-        q_values_for_actions = torch.zeros(batch, time, dtype=torch.float32, device=self.device)
-        for i in range(batch):
-            for j in range(time):
-                q_values_for_actions[i, j] = curr_state_q_values[i, j, actions[i, j]]
-
         rewards = torch.tensor(rewards, dtype=torch.float32, device=self.device)
         is_done = torch.tensor(is_done, dtype=torch.float32, device=self.device)
 
-        target_q_values = rewards + self._gamma * (1.0 - is_done) * next_state_q_values.max(2)[0]
+        curr_state_q_values, _ = self._policy_net(screens, None)
+        next_state_q_values, _ = self._target_net(screens[:, :], None)
 
-        # a_online = curr_state_q_values[:, -1].max(1)[1]
-        # target_q_values = torch.zeros(batch, time, dtype=torch.float32, device=self.device)
-        # q_value = torch.zeros(batch, dtype=torch.float32, device=self.device)
-        # for i in range(batch):
-        #     q_value[i] = next_state_q_values[i, -1, a_online[i]]
+        q_values_for_actions = curr_state_q_values[:, :-1].contiguous().\
+            view(batch * time, -1)[np.arange(batch * time), actions.ravel()].view(batch, time)
+
+        # ------------------------------------double---------------------------------
+        a_online = curr_state_q_values[:, 1:].max(-1)[1].view(-1)
+        next_state_q_values = next_state_q_values[:, 1:].contiguous().\
+            view(batch * time, -1)[np.arange(batch * time), a_online].view(batch, time)
+        target_q_values = rewards + self._gamma * (1.0 - is_done) * next_state_q_values
+
+        # ----------------------------multi-step + double----------------------------
+        # a_online = curr_state_q_values[:, -1].max(-1)[1]
+        # target_q = next_state_q_values[np.arange(batch), -1, a_online]
+        # target_q_values = torch.zeros(batch, time, dtype=torch.float32, device=torch.device('cpu'))
         # for i in reversed(range(time)):
-        #     q_value = rewards[:, i] + self._gamma * (1.0 - is_done[:, i]) * q_value
-        #     target_q_values[:, i] = q_value
+        #     target_q = rewards[:, i] + self._gamma * (1.0 - is_done[:, i]) * target_q
+        #     target_q_values[:, i] = target_q
+        # target_q_values.to(self.device)
 
         loss = mse_loss(q_values_for_actions[:, self._not_update:], target_q_values[:, self._not_update:].detach())
         return loss
 
     def _test_policy(self, n_tests):
+        self._policy_net.eval()
         shaped_rewards, rewards = [], []
-        for _ in range(n_tests):
-            episode_reward = 0.0
-            policy_state = None
-            self._test_environment.reset()
-            while True:
-                screen, features = self._test_environment.observe()
-                action, policy_state = self._policy_net.sample_actions(
-                    self.device,
-                    screen_transform(self.scenario, screen)[None, None],
-                    policy_state)
-                action = action[0]
-                reward, done = self._test_environment.step(action)
-                if not done:
-                    _, new_features = self._test_environment.observe()
-                    episode_reward += reward_shaping[self.scenario](reward, features, new_features)
-                else:
-                    episode_reward += reward
-                    shaped_rewards += [episode_reward]
-                    rewards += [self._test_environment.get_episode_reward()]
-                    break
-        mean_shaped = sum(shaped_rewards) / len(shaped_rewards)
-        mean_rewards = sum(rewards) / len(rewards)
+        with torch.no_grad():
+            for _ in range(n_tests):
+                episode_reward = 0.0
+                policy_state = None
+                self._test_environment.reset()
+                while True:
+                    screen, features = self._test_environment.observe()
+                    screen = screen_transform(self.scenario, screen)
+                    action, policy_state = self._policy_net.sample_actions(
+                        self.device,
+                        screen[None, None],
+                        policy_state)
+                    action = action[0]
+                    reward, done = self._test_environment.step(action)
+                    if not done:
+                        _, new_features = self._test_environment.observe()
+                        episode_reward += reward_shaping[self.scenario](reward, features, new_features)
+                    else:
+                        episode_reward += reward
+                        shaped_rewards += [episode_reward]
+                        rewards += [self._test_environment.get_episode_reward()]
+                        break
+            mean_shaped = sum(shaped_rewards) / len(shaped_rewards)
+            mean_rewards = sum(rewards) / len(rewards)
         return mean_shaped, mean_rewards
 
     def _train_step(self, loss):

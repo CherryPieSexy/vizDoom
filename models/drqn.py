@@ -64,5 +64,5 @@ class DRQN(nn.Module):
 
 if __name__ == '__main__':
     net = DRQN('basic', 8, 1.0)
-    a = net.sample_actions('cpu', np.random.normal(size=[1, 3, 1, 30, 45]), None)
+    a, _ = net.sample_actions('cpu', np.random.normal(size=[1, 3, 1, 30, 45]), None)
     print(a)

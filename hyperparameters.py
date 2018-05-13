@@ -30,49 +30,49 @@ HyperParametersTest = namedtuple('HyperParametersTest', [
 ])
 
 # basic
-hp_basic_train = HyperParametersTrain(scenario='basic', agent='DRQN', cuda=False,
+hp_basic_train = HyperParametersTrain(scenario='basic', agent='combined', cuda=False,
                                       train_skiprate=10, test_skiprate=4,
                                       replay_size=10 ** 4, screen_size=(1, 30, 45),
                                       learning_rate=0.0025,
                                       n_epoch=20, steps_per_epoch=2000, play_steps=1,
-                                      batch_size=64, time_size=2, not_update=1, tests_per_epoch=100,
+                                      batch_size=16, time_size=7, not_update=4, tests_per_epoch=100,
                                       start_epsilon=1.0, end_epsilon=0.01
                                       )
-hp_basic_test = HyperParametersTest(scenario='basic', agent='DQN',
+hp_basic_test = HyperParametersTest(scenario='basic', agent='combined',
                                     test_skiprate=4, epsilon=0.01, n_episodes=10)
 
 # Deadly corridor
-hp_d_cor_train = HyperParametersTrain(scenario='deadly_corridor', agent='DRQN', cuda=True,
+hp_d_cor_train = HyperParametersTrain(scenario='deadly_corridor', agent='combined', cuda=True,
                                       train_skiprate=4, test_skiprate=1,
                                       replay_size=10 ** 5, screen_size=(3, 60, 108),
-                                      learning_rate=0.001,
+                                      learning_rate=0.0002,
                                       n_epoch=20, steps_per_epoch=8000, play_steps=10,
-                                      batch_size=128, time_size=7, not_update=4, tests_per_epoch=50,
+                                      batch_size=128, time_size=10, not_update=4, tests_per_epoch=100,
                                       start_epsilon=1.0, end_epsilon=0.01
                                       )
-hp_d_cor_test = HyperParametersTest(scenario='deadly_corridor', agent='DQN',
+hp_d_cor_test = HyperParametersTest(scenario='deadly_corridor', agent='DRQN',
                                     test_skiprate=1, epsilon=0.01, n_episodes=10)
 
 # Defend The Center
-hp_def_c_train = HyperParametersTrain(scenario='defend_the_center', agent='DRQN', cuda=True,
+hp_def_c_train = HyperParametersTrain(scenario='defend_the_center', agent='combined', cuda=True,
                                       train_skiprate=4, test_skiprate=1,
                                       replay_size=10 ** 5, screen_size=(3, 60, 108),
-                                      learning_rate=0.001,
+                                      learning_rate=0.0002,
                                       n_epoch=20, steps_per_epoch=8000, play_steps=10,
-                                      batch_size=128, time_size=7, not_update=4, tests_per_epoch=30,
+                                      batch_size=128, time_size=10, not_update=4, tests_per_epoch=100,
                                       start_epsilon=1.0, end_epsilon=0.01
                                       )
-hp_def_c_test = HyperParametersTest(scenario='defend_the_center', agent='DQN',
+hp_def_c_test = HyperParametersTest(scenario='defend_the_center', agent='DRQN',
                                     test_skiprate=1, epsilon=0.01, n_episodes=5)
 
 # Health Gathering
-hp_h_gth_train = HyperParametersTrain(scenario='health_gathering', agent='DRQN', cuda=True,
+hp_h_gth_train = HyperParametersTrain(scenario='health_gathering', agent='combined', cuda=True,
                                       train_skiprate=4, test_skiprate=1,
                                       replay_size=10 ** 5, screen_size=(3, 60, 108),
-                                      learning_rate=0.001,
+                                      learning_rate=0.0002,
                                       n_epoch=20, steps_per_epoch=8000, play_steps=10,
-                                      batch_size=128, time_size=7, not_update=4, tests_per_epoch=30,
+                                      batch_size=128, time_size=10, not_update=4, tests_per_epoch=100,
                                       start_epsilon=1.0, end_epsilon=0.01
                                       )
-hp_h_gth_test = HyperParametersTest(scenario='health_gathering', agent='DQN',
+hp_h_gth_test = HyperParametersTest(scenario='health_gathering', agent='DRQN',
                                     test_skiprate=1, epsilon=0.01, n_episodes=5)
