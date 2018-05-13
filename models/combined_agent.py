@@ -24,11 +24,10 @@ class CombinedAgent(nn.Module):
             self.conv2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
             self.conv3 = nn.Conv2d(64, 64, kernel_size=3)
             self.dropout = nn.Dropout(0.5)
-            self.enemy_detection_layer = nn.Linear(192, 1)
 
             self.lstm = nn.LSTM(2560, 512, batch_first=True)
-            self.advantage_layer = nn.Linear(128, n_actions)
-            self.value_layer = nn.Linear(128, 1)
+            self.advantage_layer = nn.Linear(512, n_actions)
+            self.value_layer = nn.Linear(512, 1)
 
     def forward(self, x_screens, lstm_state):
         batch, time = x_screens.shape[:2]
