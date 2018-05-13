@@ -145,6 +145,9 @@ class Trainer:
         q_values_for_actions = curr_state_q_values[:, :-1].contiguous().\
             view(batch * time, -1)[np.arange(batch * time), actions.ravel()].view(batch, time)
 
+        # ------------------------------------simple---------------------------------
+        # target_q_values = rewards + self._gamma * (1.0 - is_done) * next_state_q_values[:, 1:].max(-1)[1]
+
         # ------------------------------------double---------------------------------
         a_online = curr_state_q_values[:, 1:].max(-1)[1].view(-1)
         next_state_q_values = next_state_q_values[:, 1:].contiguous().\
