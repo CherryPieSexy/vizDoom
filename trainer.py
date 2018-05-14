@@ -157,7 +157,7 @@ class Trainer:
         # ----------------------------multi-step + double----------------------------
         a_online = curr_state_q_values[:, -1].max(-1)[1]
         target_q = next_state_q_values[np.arange(batch), -1, a_online]
-        target_q_values = torch.zeros(batch, time, dtype=torch.float32, device=torch.device('cpu'))
+        target_q_values = torch.zeros(batch, time, dtype=torch.float32, device=self.device)
         for i in reversed(range(time)):
             target_q = rewards[:, i] + self._gamma * (1.0 - is_done[:, i]) * target_q
             target_q_values[:, i] = target_q

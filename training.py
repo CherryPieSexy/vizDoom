@@ -30,7 +30,7 @@ if __name__ == '__main__':
                       environment=train_env, test_environment=test_env,
                       experience_replay=er,
                       policy_net=policy_net, target_net=target_net, optimizer=optimizer,
-                      not_update=hp.not_update, log_folder='logs/' + hp.scenario + 'm_/' + hp.agent)
+                      not_update=hp.not_update, log_folder='logs/' + hp.scenario + '/' + hp.agent + '_m')
 
     print('----------------------------------- Training -----------------------------------')
     trainer.train(n_epoch=hp.n_epoch, steps_per_epoch=hp.steps_per_epoch,
