@@ -19,9 +19,13 @@ def reward_shaping_dcr(reward, prev_obs, next_obs):
 # defend the center
 def reward_shaping_dtc(reward, prev_obs, next_obs):
     # observation = [ammo, health]
-    ammo_health_decrease = next_obs - prev_obs < 0
-    penalty = np.dot(ammo_health_decrease.astype(int), [-0.2, -0.2])
-    return reward + penalty
+    ammo_health_decrease = (next_obs - prev_obs < 0).astype(int)
+    if reward > 0:  # in case of hitting target no penalty is needed
+        miss_penalty = 0
+    else:
+        miss_penalty = -0.2 * ammo_health_decrease[0]
+    health_decrease = -0.2 * ammo_health_decrease[1]
+    return reward + miss_penalty + health_decrease
 
 
 def reward_shaping_hg(reward, prev_obs, next_obs):

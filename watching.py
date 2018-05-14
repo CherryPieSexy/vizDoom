@@ -5,8 +5,8 @@ from models import agent
 from time import sleep
 # from hyperparameters import hp_basic_test as hp
 # from hyperparameters import hp_d_cor_test as hp
-# from hyperparameters import hp_def_c_test as hp
-from hyperparameters import hp_h_gth_test as hp
+from hyperparameters import hp_def_c_test as hp
+# from hyperparameters import hp_h_gth_test as hp
 
 if __name__ == '__main__':
     print('---------------------------- vizDoom watching script ---------------------------')
@@ -17,7 +17,7 @@ if __name__ == '__main__':
     policy_net.load_state_dict(load(
         'logs/' + hp.scenario + '/' + hp.agent + '/model.pth',
         map_location=lambda storage, loc: storage)['policy_net_state'])
-
+    policy_net.eval()
     print('scenario: {}, agent: {}'.format(hp.scenario, hp.agent))
     print('loaded model: {}'.format('logs/' + hp.scenario + '/' + hp.agent + '/model.pth'))
     print('agent\'s epsilon: {}'.format(hp.epsilon))

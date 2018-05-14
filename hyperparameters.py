@@ -50,7 +50,7 @@ hp_d_cor_train = HyperParametersTrain(scenario='deadly_corridor', agent='combine
                                       batch_size=128, time_size=10, not_update=4, tests_per_epoch=100,
                                       start_epsilon=1.0, end_epsilon=0.01
                                       )
-hp_d_cor_test = HyperParametersTest(scenario='deadly_corridor', agent='DRQN',
+hp_d_cor_test = HyperParametersTest(scenario='deadly_corridor', agent='combined',
                                     test_skiprate=1, epsilon=0.01, n_episodes=10)
 
 # Defend The Center
@@ -62,7 +62,7 @@ hp_def_c_train = HyperParametersTrain(scenario='defend_the_center', agent='combi
                                       batch_size=128, time_size=10, not_update=4, tests_per_epoch=100,
                                       start_epsilon=1.0, end_epsilon=0.01
                                       )
-hp_def_c_test = HyperParametersTest(scenario='defend_the_center', agent='DRQN',
+hp_def_c_test = HyperParametersTest(scenario='defend_the_center', agent='combined',
                                     test_skiprate=1, epsilon=0.01, n_episodes=5)
 
 # Health Gathering
@@ -74,5 +74,5 @@ hp_h_gth_train = HyperParametersTrain(scenario='health_gathering', agent='combin
                                       batch_size=128, time_size=10, not_update=4, tests_per_epoch=100,
                                       start_epsilon=1.0, end_epsilon=0.01
                                       )
-hp_h_gth_test = HyperParametersTest(scenario='health_gathering', agent='DRQN',
+hp_h_gth_test = HyperParametersTest(scenario='health_gathering', agent='combined',
                                     test_skiprate=1, epsilon=0.01, n_episodes=5)
