@@ -13,7 +13,7 @@ def reward_shaping_dcr(reward, prev_obs, next_obs):
     ammo_health_decrease = next_obs[:2] - prev_obs[:2] < 0
     kill_reward = int(next_obs[2] - prev_obs[2] > 0) * 40.0
     penalty = np.dot(ammo_health_decrease.astype(int), [-5.0, -5.0])
-    return reward - penalty + kill_reward
+    return reward / 2.0 - penalty + kill_reward
 
 
 # defend the center
