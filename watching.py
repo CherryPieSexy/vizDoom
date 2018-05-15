@@ -3,8 +3,8 @@ from doom_environment import DoomEnvironment
 from utils import watch_agent
 from models import agent
 from time import sleep
-# from hyperparameters import hp_basic_test as hp
-from hyperparameters import hp_d_cor_test as hp
+from hyperparameters import hp_basic_test as hp
+# from hyperparameters import hp_d_cor_test as hp
 # from hyperparameters import hp_def_c_test as hp
 # from hyperparameters import hp_h_gth_test as hp
 

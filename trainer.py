@@ -115,14 +115,13 @@ class Trainer:
                 mean_reward = self._play_and_record(play_steps)
 
                 sample = self._experience_replay.sample(batch_size, time_size)
-                td_loss = self._batch_loss(sample, batch_size, time_size)
-                self._train_step(td_loss)
+                td_loss = self._train_on_batch(sample, batch_size, time_size)
                 self._writer.add_scalar(self.scenario + '/td loss', td_loss, step + epoch * n_steps)
                 self._writer.add_scalar(self.scenario + '/train batch mean shaped reward',
                                         mean_reward, step + epoch * n_steps)
 
     # noinspection PyCallingNonCallable,PyUnresolvedReferences
-    def _batch_loss(self, sample, batch, time):
+    def _train_on_batch(self, sample, batch, time):
         """Calculates TD loss for a single batch
 
         sample = (
@@ -134,6 +133,9 @@ class Trainer:
         :return: mse loss, torch.tensor
         """
         self._policy_net.train()
+        self._optimizer.zero_grad()
+
+        # -----------------------------------forward---------------------------------
         screens, actions, rewards, is_done = sample
         screens = torch.tensor(screens, dtype=torch.float32, device=self.device)
         rewards = torch.tensor(rewards, dtype=torch.float32, device=self.device)
@@ -163,7 +165,14 @@ class Trainer:
             target_q_values[:, i] = target_q
         target_q_values.to(self.device)
 
+        # -------------------------------------loss----------------------------------
         loss = mse_loss(q_values_for_actions[:, self._not_update:], target_q_values[:, self._not_update:].detach())
+        # -----------------------------------backward--------------------------------
+        loss.backward()
+        for p in self._policy_net.parameters():
+            p.grad.data.clamp_(-5, 5)
+        # -----------------------------------optimize--------------------------------
+        self._optimizer.step()
         return loss
 
     def _test_policy(self, n_tests):
@@ -194,12 +203,6 @@ class Trainer:
             mean_shaped = sum(shaped_rewards) / len(shaped_rewards)
             mean_rewards = sum(rewards) / len(rewards)
         return mean_shaped, mean_rewards
-
-    def _train_step(self, loss):
-        self._optimizer.zero_grad()
-        torch.nn.utils.clip_grad_norm_(self._policy_net.parameters(), 1.0)
-        loss.backward()
-        self._optimizer.step()
 
     def save_policy(self):
         torch.save({

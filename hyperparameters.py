@@ -35,11 +35,11 @@ hp_basic_train = HyperParametersTrain(scenario='basic', agent='combined', cuda=F
                                       replay_size=10 ** 4, screen_size=(1, 30, 45),
                                       learning_rate=0.0025,
                                       n_epoch=20, steps_per_epoch=2000, play_steps=1,
-                                      batch_size=64, time_size=1, not_update=0, tests_per_epoch=100,
+                                      batch_size=32, time_size=3, not_update=1, tests_per_epoch=100,
                                       start_epsilon=1.0, end_epsilon=0.01
                                       )
 hp_basic_test = HyperParametersTest(scenario='basic', agent='combined',
-                                    test_skiprate=4, epsilon=0.01, n_episodes=10)
+                                    test_skiprate=4, epsilon=0.0, n_episodes=10)
 
 # Deadly corridor
 hp_d_cor_train = HyperParametersTrain(scenario='deadly_corridor', agent='combined', cuda=True,
