@@ -24,7 +24,9 @@ class Distributional(nn.Module):
 
             self.lstm = nn.LSTM(192, 128, batch_first=True)
             self.value_layer = nn.Linear(128, self.n_atoms)
-            self.advantages = [nn.Linear(128, self.n_atoms) for _ in range(n_actions)]
+            self.advantages = nn.ModuleList()
+            for _ in range(n_actions):
+                self.advantages.append(nn.Linear(128, self.n_atoms))
         else:
             # 51 atom for basic scenario
             self.n_atoms = 51
@@ -37,7 +39,9 @@ class Distributional(nn.Module):
 
             self.lstm = nn.LSTM(2560, 512, batch_first=True)
             self.value_layer = nn.Linear(512, self.n_atoms)
-            self.advantages = [nn.Linear(512, self.n_atoms) for _ in range(n_actions)]
+            self.advantages = nn.ModuleList()
+            for _ in range(n_actions):
+                self.advantages.append(nn.Linear(512, self.n_atoms))
 
     def forward(self, x_screens, lstm_state):
         batch, time = x_screens.shape[:2]
