@@ -115,7 +115,11 @@ class Trainer:
                 mean_reward = self._play_and_record(play_steps)
 
                 sample = self._experience_replay.sample(batch_size, time_size)
-                td_loss = self._train_on_batch(sample, batch_size, time_size)
+
+                # TODO
+                # td_loss = self._train_on_batch(sample, batch_size, time_size)
+                td_loss = self._categorical_train_on_batch(sample, batch_size, time_size)
+
                 self._writer.add_scalar(self.scenario + '/td loss', td_loss, step + epoch * n_steps)
                 self._writer.add_scalar(self.scenario + '/train batch mean shaped reward',
                                         mean_reward, step + epoch * n_steps)
@@ -135,16 +139,16 @@ class Trainer:
         self._policy_net.train()
         self._optimizer.zero_grad()
 
-        # -----------------------------------forward---------------------------------
         screens, actions, rewards, is_done = sample
         screens = torch.tensor(screens, dtype=torch.float32, device=self.device)
         rewards = torch.tensor(rewards, dtype=torch.float32, device=self.device)
         is_done = torch.tensor(is_done, dtype=torch.float32, device=self.device)
 
+        # -----------------------------------forward---------------------------------
         curr_state_q_values, _ = self._policy_net(screens, None)
-        next_state_q_values, _ = self._target_net(screens[:, :], None)
+        next_state_q_values, _ = self._target_net(screens, None)
 
-        q_values_for_actions = curr_state_q_values[:, :-1].contiguous().\
+        q_values_for_actions = curr_state_q_values[:, :-1].contiguous(). \
             view(batch * time, -1)[np.arange(batch * time), actions.ravel()].view(batch, time)
 
         # ------------------------------------simple---------------------------------
@@ -172,6 +176,55 @@ class Trainer:
         for p in self._policy_net.parameters():
             p.grad.data.clamp_(-5, 5)
         # -----------------------------------optimize--------------------------------
+        self._optimizer.step()
+        return loss
+
+    # noinspection PyUnresolvedReferences,PyCallingNonCallable
+    def _categorical_train_on_batch(self, sample, batch, time):
+        # noinspection PyShadowingNames
+        def m_prop(next_state_z_distribution, reward, is_not_done):
+            projection = reward[:, np.newaxis] + self._gamma * np.outer(is_not_done, self._policy_net.atom_support)
+            b = (np.clip(projection, self._policy_net.v_min, self._policy_net.v_max) - self._policy_net.v_min) \
+                / self._policy_net.delta_z
+            l, u = np.floor(b).astype('int32'), np.ceil(b).astype('int32')
+            # np.apply_along_axis(, axis=1, )
+            wl = next_state_z_distribution * (np.where(u == b, u+1, u) - b)
+            wu = next_state_z_distribution * (b - l)
+            ml = np.array([np.bincount(l[i], wl[i], minlength=self._policy_net.n_atoms) for i in range(len(l))])
+            mu = np.array([np.bincount(u[i], wu[i], minlength=self._policy_net.n_atoms) for i in range(len(u))])
+            return ml + mu
+
+        self._policy_net.train()
+        self._optimizer.zero_grad()
+
+        screens, actions, rewards, is_done = sample
+        screens = torch.tensor(screens, dtype=torch.float32, device=self.device)
+        curr_state_z_distribution, _ = self._policy_net(screens, None)
+        next_state_z_distribution, _ = self._target_net(screens, None)
+
+        curr_state_q_values = torch.matmul(
+            torch.from_numpy(self._policy_net.atom_support).to(self.device),
+            curr_state_z_distribution)
+
+        target_m = np.zeros([batch, time, self._policy_net.n_atoms], dtype=np.float32)
+
+        with torch.no_grad():
+            a_online = curr_state_q_values[:, -1].max(-1)[1]
+            p_target = next_state_z_distribution[np.arange(batch), -1, :, a_online].to(torch.device('cpu')).numpy()
+
+            for t in reversed(range(time)):
+                p_target = m_prop(p_target, rewards[:, t], 1.0 - is_done[:, t])
+                target_m[:, t] = p_target
+
+        z_distributions_for_actions = curr_state_z_distribution[:, :-1].contiguous(). \
+            view(batch * time, self._policy_net.n_atoms, -1)[np.arange(batch * time), :, actions.ravel()].\
+            view(batch, time, -1)
+        target_m = torch.from_numpy(target_m).to(self.device)
+        loss = -(target_m[:, self._not_update:].detach() *
+                 z_distributions_for_actions[:, self._not_update:].log()).sum()
+        loss.backward()
+        for p in self._policy_net.parameters():
+            p.grad.data.clamp_(-5, 5)
         self._optimizer.step()
         return loss
 

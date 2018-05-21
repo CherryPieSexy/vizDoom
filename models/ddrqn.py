@@ -4,9 +4,9 @@ import torch.nn.functional as fun
 import numpy as np
 
 
-class CombinedAgent(nn.Module):
+class DDRQN(nn.Module):
     def __init__(self, scenario, n_actions, epsilon=1.0):
-        super(CombinedAgent, self).__init__()
+        super(DDRQN, self).__init__()
         self.scenario = scenario
         self.n_actions = n_actions
         self.epsilon = epsilon
@@ -59,7 +59,7 @@ class CombinedAgent(nn.Module):
 
 
 if __name__ == '__main__':
-    net = CombinedAgent('basic', 8, 1.0)
+    net = DDRQN('basic', 8, 1.0)
     a, _ = net.sample_actions(
         'cpu',
         np.random.normal(size=[1, 1, 1, 30, 45]),

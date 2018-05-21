@@ -1,9 +1,12 @@
 from .dqn import DQN
 from .drqn import DRQN
-from .combined_agent import CombinedAgent
+from .ddrqn import DDRQN
+from .distributional import Distributional
 
 agent = {
+    'Random': DQN,
     'DQN': DQN,
     'DRQN': DRQN,
-    'combined': CombinedAgent
+    'DDRQN': DDRQN,
+    'Distributional': Distributional
 }
