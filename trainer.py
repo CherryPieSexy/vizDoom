@@ -116,7 +116,6 @@ class Trainer:
 
                 sample = self._experience_replay.sample(batch_size, time_size)
 
-                # TODO
                 # td_loss = self._train_on_batch(sample, batch_size, time_size)
                 td_loss = self._categorical_train_on_batch(sample, batch_size, time_size)
 

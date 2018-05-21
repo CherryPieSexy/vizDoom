@@ -5,7 +5,7 @@ import numpy as np
 
 
 class Distributional(nn.Module):
-    def __init__(self, scenario, n_actions, epsilon=1.0, v_min=-15, v_max=100):
+    def __init__(self, scenario, n_actions, epsilon=1.0, v_min=-5, v_max=15):
         super(Distributional, self).__init__()
         self.scenario = scenario
         self.n_actions = n_actions
@@ -52,7 +52,7 @@ class Distributional(nn.Module):
         x, lstm_state = self.lstm(x, lstm_state)
         value = self.value_layer(x)
         # noinspection PyUnresolvedReferences
-        advantages = torch.stack([self.advantages[i](x) for i in range(self.n_actions)], dim=-1)
+        advantages = torch.stack([adv(x) for adv in self.advantages], dim=-1)
 
         atom_logits = value.unsqueeze(-1) + advantages - advantages.mean(-1, keepdim=True)
         atom_probabilities = fun.softmax(atom_logits, dim=-2)  # soft max along all atoms
