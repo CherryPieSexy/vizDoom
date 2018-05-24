@@ -74,9 +74,10 @@ class Trainer:
             action = action[0]
             reward, done = self._environment.step(action)
             if not done:
-                _, new_features = self._environment.observe()
                 # if episode is not ended yet, evaluate shaped reward
-                self._episode_reward += reward_shaping[self.scenario](reward, features, new_features)
+                _, new_features = self._environment.observe()
+                reward = reward_shaping[self.scenario](reward, features, new_features)
+                self._episode_reward += reward
             else:
                 # if episode is just ended, reward needn't to be shaped
                 self._episode_reward += reward

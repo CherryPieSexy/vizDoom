@@ -5,8 +5,8 @@ from models import agent
 from trainer import Trainer
 # from hyperparameters import hp_basic_train as hp
 # from hyperparameters import hp_d_cor_train as hp
-from hyperparameters import hp_def_c_train as hp
-# from hyperparameters import hp_h_gth_train as hp
+# from hyperparameters import hp_def_c_train as hp
+from hyperparameters import hp_h_gth_train as hp
 
 
 if __name__ == '__main__':
