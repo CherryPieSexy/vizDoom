@@ -33,6 +33,18 @@ def reward_shaping_hg(reward, prev_obs, next_obs):
     return reward + int(healing > 0) * healing
 
 
+def reward_shaping_dm(reward, prev_obs, next_obs):
+    # observation = [ammo, health]
+    # TODO: for action
+    # TODO: positive reward for object pick-up (health or ammo)
+    # TODO: negative for losing loosing health ar ammo
+    # TODO: for navigation:
+    # TODO: positive for health_ammo increase
+    # TODO: negative for loosing health
+    pass
+
+
+
 reward_shaping = {
     'basic': reward_shaping_basic,
     'defend_the_center': reward_shaping_dtc,

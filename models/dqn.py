@@ -62,6 +62,6 @@ class DQN(nn.Module):
 
 
 if __name__ == '__main__':
-    net = DQN('basic', 8, 1.0)
-    a = net.sample_actions('cpu', np.random.normal(size=[1, 3, 1, 30, 45]), None)
+    net = DQN('p', 8, 1.0)
+    a = net.sample_actions('cpu', np.random.normal(size=[1, 1, 3, 60, 108]), None)
     print(a)
